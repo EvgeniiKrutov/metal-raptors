@@ -1,0 +1,7 @@
+{
+  "gravity": 800,
+  "dragCoefficient": 0.02,
+  "liftCoefficient": 1.5,
+  "stallSpeed": 80,
+  "stallRotationRate": 1.5
+}

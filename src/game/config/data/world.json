@@ -1,0 +1,17 @@
+{
+  "display": {
+    "width": 1920,
+    "height": 1080
+  },
+  "world": {
+    "width": 5760,
+    "height": 3240
+  },
+  "camera": {
+    "lerp": 0.1,
+    "zoom": 1.5
+  },
+  "parallax": [
+    { "key": "fg", "depth": -90, "parallaxFactor": 0.5 }
+  ]
+}

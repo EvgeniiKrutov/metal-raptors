@@ -1,0 +1,46 @@
+{
+  "id": "fighter",
+  "name": "WW1 Fighter",
+  "stats": {
+    "sprite": "enemy",
+    "width": 64,
+    "health": 100,
+    "damage": 10,
+    "fireRate": 5
+  },
+  "flight": {
+    "maxSpeed": 460,
+    "minSpeed": 120,
+    "acceleration": 200,
+    "braking": 150,
+    "turnSpeed": 150,
+    "weight": 1.0
+  },
+  "ai": {
+    "targeting": {
+      "fireAngleThreshold": 14,
+      "leadFactor": 1.0,
+      "maxFireRange": 1400
+    },
+    "groundAvoidance": {
+      "minAltitudeMargin": 300,
+      "safeAltitudeMargin": 500
+    },
+    "attack": {
+      "durationMs": 3000
+    },
+    "fly": {
+      "durationMs": 2000,
+      "targetYFactor": 0.2,
+      "weaveAmplitude": 120,
+      "weaveHz": 0.4
+    },
+    "evasion": {
+      "threatRadius": 900,
+      "threatMissDistance": 70,
+      "durationMs": 2000,
+      "jitterAmplitude": 1.1,
+      "jitterHz": 16
+    }
+  }
+}
