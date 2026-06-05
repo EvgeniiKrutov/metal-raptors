@@ -41,7 +41,6 @@ export class UIScene extends Phaser.Scene {
         fontFamily: 'Courier New',
         fontSize: '14px',
         color: '#ffffff',
-        alpha: 0.5,
       },
     ).setOrigin(0.5, 0.5).setAlpha(0.45);
 
