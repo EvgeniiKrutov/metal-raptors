@@ -4,11 +4,9 @@ import { gameConfig } from '../config/gameConfig';
 import { healthColour, isTouchDevice } from '../utils/helpers';
 import { ControlState } from '../../types/game.types';
 
-/** Opacity of the on-screen touch controls (background stays visible through them). */
 const CONTROLS_ALPHA = 0.4;
 
 export class UIScene extends Phaser.Scene {
-  /** Injected by the rexVirtualJoystick scene plugin (see GameContainer config). */
   rexVirtualJoystick!: {
     add(scene: Phaser.Scene, config?: VirtualJoyStick.IConfig): VirtualJoyStick;
   };

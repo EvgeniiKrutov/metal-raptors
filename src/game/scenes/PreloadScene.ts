@@ -9,11 +9,11 @@ export class PreloadScene extends Phaser.Scene {
   preload(): void {
     this.createLoadingUI();
 
-    this.load.image('player_temp', 'sprites/planes/Sopwith_Camel.png');
-    this.load.image('enemy_temp', 'sprites/planes/Fokker_Dr_1.png');
-    this.load.image('bg', 'backgrounds/verden/Verden_Background_Dawn.png');
-    this.load.image('fg', 'backgrounds/verden/Verden_Foreground_Dawn.png');
-    this.load.image('ground', 'backgrounds/verden/Verden_Ground_Dawn.png');
+    this.load.image('player_temp', 'sprites/planes/world_war_1/Sopwith_Camel.png');
+    this.load.image('enemy_temp', 'sprites/planes/world_war_1/Fokker_Dr_1.png');
+    this.load.image('bg', 'backgrounds/verden/verden_background_dawn.png');
+    this.load.image('fg', 'backgrounds/verden/verden_foreground_dawn.png');
+    this.load.image('ground', 'backgrounds/verden/verden_ground_dawn.png');
     this.load.audio('bullet_shot', 'sounds/bullet_shot_1.wav');
   }
 
@@ -28,7 +28,7 @@ export class PreloadScene extends Phaser.Scene {
   private makePlaneTexture(spriteName: string, planeName: string): void {
     const tempSprite = this.add.sprite(0, 0, spriteName);
 
-    const baseWidth = 130;
+    const baseWidth = 150;
     const baseHeight = (baseWidth * tempSprite.height) / tempSprite.width;
 
     const scaleX = baseWidth / tempSprite.width;

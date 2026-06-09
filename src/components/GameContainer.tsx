@@ -20,12 +20,12 @@ const GameContainer: React.FC<Props> = ({ onReady }) => {
 
     const config: Phaser.Types.Core.GameConfig = {
       type: Phaser.AUTO,
-      width:  gameConfig.display.width,
-      height: gameConfig.display.height,
       backgroundColor: '#87ceeb',
-      pixelArt: true,
-      antialias: false,
-      roundPixels: true,
+      render: {
+        pixelArt: true,
+        antialias: false,
+        roundPixels: false,
+      },
       scale: {
         mode:          Phaser.Scale.FIT,
         autoCenter:    Phaser.Scale.CENTER_BOTH,
@@ -37,6 +37,8 @@ const GameContainer: React.FC<Props> = ({ onReady }) => {
         default: 'arcade',
         arcade: {
           gravity: { x: 0, y: 0 },
+          fixedStep: true,
+          fps: 90,
           debug: import.meta.env.DEV && false, // set true to see hitboxes
         },
       },

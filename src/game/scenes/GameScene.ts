@@ -5,6 +5,7 @@ import { EnemyPlane }  from '../entities/EnemyPlane';
 import { Bullet }      from '../entities/Bullet';
 import { ParallaxSystem } from '../systems/ParallaxSystem';
 import { CombatSystem }   from '../systems/CombatSystem';
+import { InterpolationSystem } from '../systems/InterpolationSystem';
 import { gameEvents, EVENTS } from '../Game';
 import { EnemyBehaviorConfig, ControlState } from '../../types/game.types';
 import { isTouchDevice } from '../utils/helpers';
@@ -19,6 +20,7 @@ export class GameScene extends Phaser.Scene {
 
   parallaxSystem!: ParallaxSystem;
   combatSystem!: CombatSystem;
+  interpolationSystem!: InterpolationSystem;
 
   private keys!: {
     W: Phaser.Input.Keyboard.Key;
@@ -44,6 +46,8 @@ export class GameScene extends Phaser.Scene {
     this.physics.world.setBounds(0, 0, world.width, world.height);
     this.physics.world.gravity.set(0, 0);
 
+    this.interpolationSystem = new InterpolationSystem(this);
+
     this.parallaxSystem = new ParallaxSystem(this);
     this.parallaxSystem.create();
 
@@ -68,6 +72,8 @@ export class GameScene extends Phaser.Scene {
       gameConfig.player,
     );
 
+    this.interpolationSystem.register(this.player);
+
     this.player.on('fire', (x: number, y: number, angle: number) => {
       this.spawnBullet(x, y, angle);
     });
@@ -80,12 +86,15 @@ export class GameScene extends Phaser.Scene {
       behavior,
     );
 
+    this.interpolationSystem.register(this.enemy);
+
     this.enemy.on('fire', (x: number, y: number, angle: number) => {
       this.spawnEnemyBullet(x, y, angle);
     });
 
     const cam = this.cameras.main;
     cam.setBounds(0, 0, world.width, world.height);
+    cam.setRoundPixels(false);
     cam.startFollow(
       this.player,
       true,

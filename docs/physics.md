@@ -2,6 +2,8 @@
 
 Implemented in `src/game/systems/PhysicsSystem.ts` as a stateless utility (`PhysicsSystem.updateFlight`). Arcade gravity is disabled globally; all forces are applied manually.
 
+Arcade Physics runs on a **fixed timestep** (`physics.arcade.fixedStep: true`, `fps` in the Phaser config), so body integration is deterministic and frame-rate independent. Rendering is decoupled from this simulation by the [InterpolationSystem](systems.md#interpolationsystem), which interpolates the *drawn* position of moving sprites between fixed steps without ever moving the physics body — so the hitboxes described here are unaffected. `roundPixels` is off in the render config and on the camera so the interpolated sub-pixel positions are preserved.
+
 ## Forces
 
 | Force | Formula | Notes |

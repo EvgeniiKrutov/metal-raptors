@@ -39,6 +39,52 @@ See [physics.md](physics.md) for a full description of the force model.
 
 ---
 
+## InterpolationSystem
+
+`src/game/systems/InterpolationSystem.ts`
+
+Decouples rendering from simulation so fast sprites stay smooth on high-refresh / variable-refresh (ProMotion, 120 Hz) displays, without `forceSetTimeOut`.
+
+### Why
+
+Arcade Physics already advances bodies on a **fixed timestep** (`physics.arcade.fixedStep: true`, `fps` in the Phaser config). The simulation is therefore deterministic and frame-rate independent. What Arcade does *not* do is interpolate the rendered sprite between those fixed steps — it copies the body position onto `sprite.x/y` once per render frame. On a panel whose render frames land at irregular real-world intervals, the sprite is drawn at uneven on-screen positions and fast motion smears under smooth-pursuit eye tracking. This system fills that gap.
+
+### How
+
+Only **position** is interpolated. Rotation, screen-wrap and the ceiling clamp are written straight onto the sprite each frame inside `GameScene.update` (they are not part of Arcade's fixed-step body integration), so the system leaves `sprite.rotation` untouched — turning stays instant and identical to before. The ProMotion blur comes from uneven *translation*, which is exactly what gets interpolated.
+
+For every registered sprite the system tracks the previous and current authoritative (body-driven) positions, then drives three scene/physics hooks:
+
+| Hook | Phase | Action |
+|---|---|---|
+| `worldstep` | a fixed physics step just ran | flags that a step happened this frame |
+| `postupdate` | after physics sync, before render | snapshot (`prev ← cur`, `cur ← sprite.{x,y}`) on stepped frames, then draw at `lerp(prev, cur, alpha)` |
+| `preupdate` | next frame, before `update` + physics | restore sprite to authoritative `cur` position |
+
+`alpha = clamp(world._elapsed / world._frameTimeMS, 0, 1)` is Arcade's leftover-accumulator fraction — always in `[0, 1)`, so this is pure interpolation, never extrapolation. The snapshot reads the sprite during `postupdate` because Arcade only syncs the body position back onto the sprite there (not at `worldstep`); on frames with zero physics steps (common at high refresh rates) the snapshot is skipped and `alpha` sweeps `prev → cur`.
+
+### Hitboxes are unchanged
+
+The **physics body is never moved by this system.** The sprite is restored to its authoritative position in `preupdate` — before `GameScene.update` reads any positions and before the next physics step — so every body integration and every `physics.overlap` test runs at the exact same position and size as before interpolation existed. Only the *drawn* position is shifted, and only during the post-update → next-pre-update window.
+
+### Teleports and pooling
+
+A jump larger than the teleport threshold (256 px between steps — world-wrap, spawn, reset) snaps instead of interpolating, so the sprite never streaks across the screen. Pooled objects (bullets) are registered once on spawn; reactivation from the pool also snaps. Camera follow targets the (interpolated) sprite, so background scroll is smooth too.
+
+### Usage
+
+```ts
+this.interpolationSystem = new InterpolationSystem(this);
+this.interpolationSystem.register(this.player);
+this.interpolationSystem.register(this.enemy);
+// on bullet spawn:
+this.interpolationSystem.register(bullet);
+```
+
+Listeners are torn down automatically on scene `shutdown` / `destroy`.
+
+---
+
 ## ParallaxSystem
 
 `src/game/systems/ParallaxSystem.ts`

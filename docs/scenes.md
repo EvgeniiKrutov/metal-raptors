@@ -47,18 +47,21 @@ Main gameplay scene. Owns all game entities and drives the per-frame update loop
 ### Setup (`create`)
 
 1. Physics world bounds set to `world.width × world.height`; arcade gravity disabled
-2. `ParallaxSystem` created and background layers added
+2. `InterpolationSystem` created (render-interpolation hooks for smooth high-refresh motion); `ParallaxSystem` created and background layers added
 3. Ground visual: a tile sprite at `worldHeight − 80` with depth −50
 4. Bullet pools created: player bullets (max 120) and enemy bullets (max 120)
 5. `PlayerPlane` spawned at 20% × 45% of world size
 6. `EnemyPlane` spawned at 75% × 45% with the fighter behavior JSON
-7. Camera follows the player with configurable lerp; bounds set to the full world
-8. WASD + F keys registered
-9. `CombatSystem` initialised
-10. Health values written to the registry; `UIScene` launched in parallel
-11. `RESTART_GAME` listener registered; `GAME_STARTED` event emitted
+7. Player, enemy (and each spawned bullet) registered with the `InterpolationSystem`
+8. Camera follows the player with configurable lerp (round-pixels disabled so interpolated sub-pixel positions are not re-quantized); bounds set to the full world
+9. WASD + F keys registered
+10. `CombatSystem` initialised
+11. Health values written to the registry; `UIScene` launched in parallel
+12. `RESTART_GAME` listener registered; `GAME_STARTED` event emitted
 
 ### Update Loop
+
+`update` runs between the `InterpolationSystem`'s `preupdate` hook (which restores every sprite to its authoritative simulation position) and the physics step, so all positions read below are the true, non-interpolated values. Position interpolation for rendering is reapplied afterwards in `postupdate`.
 
 Each frame (when not game over):
 
