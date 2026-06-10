@@ -163,6 +163,9 @@ export class GameScene extends Phaser.Scene {
     };
     this.enemy.updateAI(delta, aiCtx);
 
+    this.player.updateSmoke();
+    this.enemy.updateSmoke();
+
     if (this.player.x < 0)          this.player.x = world.width;
     if (this.player.x > world.width) this.player.x = 0;
 
@@ -236,6 +239,11 @@ export class GameScene extends Phaser.Scene {
         current: this.player.currentHealth,
         max: this.player.maxHealth,
       });
+
+      // Slight camera shake while the player is in critical (≤30%) health.
+      if (this.player.isAlive() && this.player.getHealthPercent() <= 0.3) {
+        cam.shake(200, 0.004);
+      }
 
       if (!this.player.isAlive()) {
         this.triggerGameOver('DEFEAT');

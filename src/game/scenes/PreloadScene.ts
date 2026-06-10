@@ -14,6 +14,7 @@ export class PreloadScene extends Phaser.Scene {
     this.load.image('bg', 'backgrounds/verden/verden_background_dawn.png');
     this.load.image('fg', 'backgrounds/verden/verden_foreground_dawn.png');
     this.load.image('ground', 'backgrounds/verden/verden_ground_dawn.png');
+    this.load.image('smoke', 'effects/smoke.png');
     this.load.audio('bullet_shot', 'sounds/bullet_shot_1.wav');
   }
 

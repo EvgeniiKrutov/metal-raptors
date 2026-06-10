@@ -172,7 +172,6 @@ export class EnemyPlane extends Plane {
   }
 
   private computeHeading(ctx: AIContext): number {
-    console.log('AI State:', this.aiState);
     switch (this.aiState) {
 
       case 'RECOVER': {

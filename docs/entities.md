@@ -24,6 +24,14 @@ Arcade gravity is disabled on every plane body; gravity is applied manually by `
 | `getHealthPercent()` | `number` | `currentHealth / maxHealth` (0–1) |
 | `isAlive()` | `boolean` | `currentHealth > 0` |
 
+### Damage smoke
+
+Every plane gets a hand-drawn smoke trail (`smokeEmitter`) that activates once health drops to or below `SMOKE_HEALTH_THRESHOLD`. `updateSmoke()` must be called once per frame; it scales emission frequency (55ms → 18ms) and tint (`0x666666` → `0x222222`) as health approaches 0.
+
+The `smoke.png` texture is ~454x375px, hence the small `scale` (0.1–0.5) on the emitter config.
+
+`setFrequency()`/`setParticleTint()` reset the emitter's internal flow counter on every call, so `updateSmoke()` caches the last-applied `smokeFrequency`/`smokeTint` and only re-applies them when the value actually changes — calling `setFrequency()` every frame would otherwise perpetually restart the flow countdown and no particle would ever emit.
+
 ---
 
 ## PlayerPlane
