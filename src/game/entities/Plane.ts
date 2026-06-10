@@ -3,6 +3,9 @@ import { PlaneConfig } from '../../types/game.types';
 
 const SMOKE_HEALTH_THRESHOLD = 0.3;
 
+const CRASH_GRAVITY      = 900;
+const CRASH_INITIAL_FALL = 60;
+
 export abstract class Plane extends Phaser.Physics.Arcade.Sprite {
   planeConfig: PlaneConfig;
 
@@ -11,6 +14,11 @@ export abstract class Plane extends Phaser.Physics.Arcade.Sprite {
 
   currentHealth: number;
   maxHealth: number;
+
+  isCrashing: boolean = false;
+  private crashVx = 0;
+  private crashVy = 0;
+  private crashSpin = 0;
 
   private smokeEmitter?: Phaser.GameObjects.Particles.ParticleEmitter;
   private smokeFrequency = -1;
@@ -91,6 +99,48 @@ export abstract class Plane extends Phaser.Physics.Arcade.Sprite {
       this.smokeFrequency = -1;
       this.smokeTint = -1;
     }
+  }
+
+  startCrash(): void {
+    if (this.isCrashing) return;
+    this.isCrashing = true;
+
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    body.enable = false;
+
+    this.crashVx   = Math.cos(this.rotation) * this.currentSpeed * 0.3;
+    this.crashVy   = CRASH_INITIAL_FALL;
+    this.crashSpin = (Math.random() < 0.5 ? -1 : 1) * Phaser.Math.FloatBetween(2, 4);
+
+    if (this.smokeEmitter) {
+      this.smokeEmitter.setFrequency(20);
+      this.smokeEmitter.setParticleTint(0x222222);
+      this.smokeEmitter.start();
+    }
+  }
+
+  updateCrash(delta: number, groundY: number): boolean {
+    if (!this.isCrashing) return false;
+
+    const dt = delta / 1000;
+    this.crashVy  += CRASH_GRAVITY * dt;
+    this.x        += this.crashVx * dt;
+    this.y        += this.crashVy * dt;
+    this.rotation += this.crashSpin * dt;
+
+    if (this.y >= groundY) {
+      this.y = groundY;
+      return true;
+    }
+    return false;
+  }
+
+  hideWreck(): void {
+    this.setVisible(false);
+    this.smokeEmitter?.stop();
+
+    const body = this.body as Phaser.Physics.Arcade.Body | undefined;
+    if (body) body.enable = false;
   }
 
   destroy(fromScene?: boolean): void {

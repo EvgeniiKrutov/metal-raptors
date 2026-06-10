@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { gameConfig } from '../config/gameConfig';
+import { Plane }       from '../entities/Plane';
 import { PlayerPlane } from '../entities/PlayerPlane';
 import { EnemyPlane }  from '../entities/EnemyPlane';
 import { Bullet }      from '../entities/Bullet';
@@ -11,6 +12,8 @@ import { EnemyBehaviorConfig, ControlState } from '../../types/game.types';
 import { isTouchDevice } from '../utils/helpers';
 import { UIScene } from './UIScene';
 import fighterBehavior from '../config/data/enemies/fighter.json';
+
+const EXPLOSION_FRAME_WIDTH = 186;
 
 export class GameScene extends Phaser.Scene {
   player!: PlayerPlane;
@@ -33,6 +36,9 @@ export class GameScene extends Phaser.Scene {
   private isGameOver: boolean = false;
   private useTouch: boolean = false;
 
+  private pendingOutcome: 'VICTORY' | 'DEFEAT' | null = null;
+  private crashingPlane: Plane | null = null;
+
   constructor() {
     super({ key: 'GameScene' });
   }
@@ -40,8 +46,10 @@ export class GameScene extends Phaser.Scene {
   create(): void {
     const { world, display, camera } = gameConfig;
 
-    this.isGameOver = false;
-    this.useTouch   = isTouchDevice();
+    this.isGameOver     = false;
+    this.useTouch       = isTouchDevice();
+    this.pendingOutcome = null;
+    this.crashingPlane  = null;
 
     this.physics.world.setBounds(0, 0, world.width, world.height);
     this.physics.world.gravity.set(0, 0);
@@ -134,7 +142,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   update(_time: number, delta: number): void {
-    if (this.isGameOver) return;
+    if (this.isGameOver) {
+      this.updateGameOver(delta);
+      return;
+    }
 
     const { world } = gameConfig;
     const groundY = world.height - 80;
@@ -180,7 +191,12 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (this.player.y >= groundY) {
-      this.triggerGameOver('DEFEAT');
+      this.triggerGameOver('DEFEAT', this.player, 'ground');
+      return;
+    }
+
+    if (this.enemy.isAlive() && this.enemy.y >= groundY) {
+      this.triggerGameOver('VICTORY', this.enemy, 'ground');
       return;
     }
 
@@ -223,7 +239,7 @@ export class GameScene extends Phaser.Scene {
       });
 
       if (!this.enemy.isAlive()) {
-        this.triggerGameOver('VICTORY');
+        this.triggerGameOver('VICTORY', this.enemy, 'air');
         return;
       }
     }
@@ -246,7 +262,7 @@ export class GameScene extends Phaser.Scene {
       }
 
       if (!this.player.isAlive()) {
-        this.triggerGameOver('DEFEAT');
+        this.triggerGameOver('DEFEAT', this.player, 'fall');
         return;
       }
     }
@@ -317,13 +333,60 @@ export class GameScene extends Phaser.Scene {
       .setDepth(-50);
   }
 
-  private triggerGameOver(outcome: 'VICTORY' | 'DEFEAT'): void {
+  private triggerGameOver(
+    outcome: 'VICTORY' | 'DEFEAT',
+    plane: Plane,
+    cause: 'air' | 'fall' | 'ground',
+  ): void {
     if (this.isGameOver) return;
-    this.isGameOver = true;
+    this.isGameOver     = true;
+    this.pendingOutcome = outcome;
 
-    this.time.delayedCall(300, () => {
+    this.interpolationSystem.unregister(plane);
+
+    const cam = this.cameras.main;
+    cam.startFollow(plane, true, gameConfig.camera.lerp, gameConfig.camera.lerp);
+
+    switch (cause) {
+      case 'air':
+        this.spawnExplosion(plane.x, plane.y, plane.displayWidth, 0.5);
+        plane.hideWreck();
+        break;
+      case 'ground': {
+        const groundY = gameConfig.world.height - 80;
+        this.spawnExplosion(plane.x, groundY, plane.displayWidth, 1);
+        plane.hideWreck();
+        break;
+      }
+      case 'fall':
+        plane.startCrash();
+        this.crashingPlane = plane;
+        break;
+    }
+  }
+
+  private updateGameOver(delta: number): void {
+    const plane = this.crashingPlane;
+    if (!plane) return; // nothing falling; waiting on the explosion to finish
+
+    const groundY = gameConfig.world.height - 80;
+    if (plane.updateCrash(delta, groundY)) {
+      this.spawnExplosion(plane.x, groundY, plane.displayWidth, 1);
+      plane.hideWreck();
+      this.crashingPlane = null;
+    }
+  }
+
+  private spawnExplosion(x: number, y: number, planeSize: number, originY: number): void {
+    const boom = this.add.sprite(x, y, 'explosion', 0);
+    boom.setOrigin(0.5, originY);
+    boom.setScale(planeSize / EXPLOSION_FRAME_WIDTH); // match the plane's size
+    boom.setDepth(20);
+    boom.play('explosion');
+
+    boom.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
       this.scene.pause();
-      gameEvents.emit(EVENTS.GAME_OVER, { outcome });
+      gameEvents.emit(EVENTS.GAME_OVER, { outcome: this.pendingOutcome });
     });
   }
 

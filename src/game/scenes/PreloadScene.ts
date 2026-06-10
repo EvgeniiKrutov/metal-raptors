@@ -15,15 +15,31 @@ export class PreloadScene extends Phaser.Scene {
     this.load.image('fg', 'backgrounds/verden/verden_foreground_dawn.png');
     this.load.image('ground', 'backgrounds/verden/verden_ground_dawn.png');
     this.load.image('smoke', 'effects/smoke.png');
+    this.load.image('bullet', 'effects/bullet.png');
+    this.load.spritesheet('explosion', 'effects/explosion.png', {
+      frameWidth: 165,
+      frameHeight: 196,
+    });
     this.load.audio('bullet_shot', 'sounds/bullet_shot_1.wav');
   }
 
   create(): void {
     this.makePlayerTexture();
     this.makeEnemyTexture();
-    this.makeBulletTexture();
+    this.makeExplosionAnimation();
 
     this.scene.start('GameScene');
+  }
+
+  private makeExplosionAnimation(): void {
+    if (this.anims.exists('explosion')) return;
+
+    this.anims.create({
+      key: 'explosion',
+      frames: this.anims.generateFrameNumbers('explosion', { start: 0, end: 21 }),
+      frameRate: 30,
+      repeat: 0,
+    });
   }
 
   private makePlaneTexture(spriteName: string, planeName: string): void {
@@ -56,17 +72,6 @@ export class PreloadScene extends Phaser.Scene {
 
   private makeEnemyTexture(): void {
     this.makePlaneTexture('enemy_temp', 'enemy');
-  }
-
-  private makeBulletTexture(): void {
-    const { width, height } = gameConfig.bullet;
-    const g = this.make.graphics({ x: 0, y: 0 });
-    g.fillStyle(0xffd700);
-    g.fillRect(0, 0, width, height);
-    g.fillStyle(0xffffff);
-    g.fillRect(0, 0, 2, height);
-    g.generateTexture('bullet', width, height);
-    g.destroy();
   }
 
   private createLoadingUI(): void {
