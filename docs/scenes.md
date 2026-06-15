@@ -104,7 +104,7 @@ Individual enemy death is *never* an immediate VICTORY — only the `LevelManage
 ### Game Over
 
 - `triggerVictory()` — set after the last stage clears; an 800 ms delay lets the final explosion play, then the scene pauses and emits `GAME_OVER { outcome: 'VICTORY', levelId }`.
-- `triggerDefeat(plane, cause)` — `'ground'` explodes the player immediately, `'fall'` (health 0) plays the crash; on the explosion's animation-complete the scene pauses and emits `GAME_OVER { outcome: 'DEFEAT', levelId }`.
+- `triggerDefeat(plane, cause)` — clears the enemy registry (so `UIScene` stops drawing enemy health bars for the rest of the defeat sequence), then `'ground'` explodes the player immediately, `'fall'` (health 0) plays the crash; on the explosion's animation-complete the scene pauses and emits `GAME_OVER { outcome: 'DEFEAT', levelId }`.
 - `explodeEnemy(enemy)` — cosmetic per-enemy explosion (no game over): spawn the sprite, `hideWreck`, and `LevelManager.removeEnemy`.
 
 The flag `isGameOver` prevents re-entry. `handleRestart({ levelId })` restarts the

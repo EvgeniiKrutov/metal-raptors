@@ -186,13 +186,8 @@ export class GameScene extends Phaser.Scene {
     this.levelManager.update(delta);
     if (this.isGameOver) return;
 
+    this.updateEnemyAI(delta);
     const enemies = this.levelManager.getActiveEnemies();
-
-    for (const enemy of enemies) {
-      if (!enemy.isAlive()) continue;
-      enemy.updateAI(delta, this.buildAIContext(enemy));
-      enemy.updateSmoke();
-    }
 
     this.player.updateSmoke();
 
@@ -213,8 +208,6 @@ export class GameScene extends Phaser.Scene {
 
     for (const enemy of enemies) {
       if (!enemy.isAlive()) continue;
-      if (enemy.x < 0)           enemy.x = world.width;
-      if (enemy.x > world.width) enemy.x = 0;
       if (enemy.y >= groundY) {
         enemy.takeDamage(enemy.currentHealth);
         destroyed.add(enemy);
@@ -283,6 +276,20 @@ export class GameScene extends Phaser.Scene {
     this.writeEnemyRegistry(cam);
 
     this.parallaxSystem.update(cam, this.player.y);
+  }
+
+  private updateEnemyAI(delta: number): void {
+    const { world } = gameConfig;
+    const enemies = this.levelManager.getActiveEnemies();
+
+    for (const enemy of enemies) {
+      if (!enemy.isAlive()) continue;
+      enemy.updateAI(delta, this.buildAIContext(enemy));
+      enemy.updateSmoke();
+
+      if (enemy.x < 0)           enemy.x = world.width;
+      if (enemy.x > world.width) enemy.x = 0;
+    }
   }
 
   private buildAIContext(enemy: EnemyPlane): AIContext {
@@ -403,6 +410,7 @@ export class GameScene extends Phaser.Scene {
     this.isGameOver     = true;
     this.pendingOutcome = 'DEFEAT';
 
+    this.registry.set('enemies', []);
     this.interpolationSystem.unregister(plane);
 
     const cam = this.cameras.main;
@@ -423,6 +431,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   private updateGameOver(delta: number): void {
+    this.updateEnemyAI(delta);
+
     const plane = this.crashingPlane;
     if (!plane) return;
 
