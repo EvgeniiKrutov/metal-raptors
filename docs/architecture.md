@@ -30,13 +30,18 @@ BootScene → PreloadScene → GameScene
 | Scene | Responsibility |
 |---|---|
 | `BootScene` | Immediately transitions to `PreloadScene` |
-| `PreloadScene` | Loads image assets; generates runtime textures (player, enemy, bullet); starts `GameScene` |
-| `GameScene` | Main gameplay loop — entities, physics, AI, combat, camera |
-| `UIScene` | Parallel HUD overlay — health bars drawn with `Graphics` |
+| `PreloadScene` | Loads generic assets; generates runtime textures; idle hub that launches `GameScene` on `START_GAME { levelId }` |
+| `GameScene` | Main gameplay loop — player, `LevelManager`, physics, AI, combat, camera; loads the level's backgrounds in `preload` |
+| `UIScene` | Parallel HUD overlay — health bars + stage indicator drawn with `Graphics` |
 
 ## Data-Driven Design
 
-Enemy archetypes are fully described by JSON files under `src/game/config/data/enemies/`. Swapping the JSON file changes the enemy's flight envelope, combat stats, and all AI tuning without touching TypeScript. The `EnemyBehaviorConfig` interface enforces the shape.
+Enemy archetypes are fully described by JSON files under
+`src/game/config/data/enemies/`, and **levels** by JSON under
+`src/game/config/data/levels/`. A level lists ordered stages, each spawning a
+quota of enemy types; the `LevelManager` system drives spawning and stage
+progression. Swapping JSON changes enemies, backgrounds, and level structure
+without touching TypeScript. See [levels.md](levels.md).
 
 ## Event Bus
 
@@ -47,12 +52,18 @@ Enemy archetypes are fully described by JSON files under `src/game/config/data/e
 
 | Event | Direction | Payload |
 |---|---|---|
+| `ASSETS_LOADED` | Phaser → React | — |
+| `START_GAME` | React → Phaser | `{ levelId }` |
 | `GAME_STARTED` | Phaser → React | — |
-| `GAME_OVER` | Phaser → React | `{ outcome: 'VICTORY' \| 'DEFEAT' }` |
-| `RESTART_GAME` | React → Phaser | — |
+| `GAME_OVER` | Phaser → React | `{ outcome: 'VICTORY' \| 'DEFEAT', levelId }` |
+| `RESTART_GAME` | React → Phaser | `{ levelId }` |
+| `EXIT_TO_MENU` | React → Phaser | — |
 | `PLAYER_HEALTH_CHANGED` | Phaser → React | `{ current, max }` |
-| `ENEMY_HEALTH_CHANGED` | Phaser → React | `{ current, max }` |
 
 ## Registry (Phaser → UIScene)
 
-`GameScene` writes live enemy position and health values into the Phaser registry each frame. `UIScene` reads them in its `update()` to position the floating enemy health bar without needing a direct scene reference.
+`GameScene` writes the live enemy descriptors (`enemies` — an array of
+`{ screenX, screenY, percent }`), the player health, and a `stageInfo` object
+into the Phaser registry each frame. `UIScene` reads them in its `update()` to
+draw the per-enemy floating health bars and the stage indicator without needing a
+direct scene reference.

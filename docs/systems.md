@@ -8,24 +8,85 @@ Handles all collision detection and damage application between bullets and plane
 
 ### Methods
 
-#### `checkBulletEnemyCollision(bullets, enemy) → boolean`
+#### `checkBulletEnemiesCollision(bullets, enemies) → EnemyHit[]`
 
-Uses `physics.overlap` to test every active player bullet against the enemy sprite. On each hit:
+Loops over the live enemy list and uses `physics.overlap` to test every active
+player bullet against each enemy sprite. On each hit:
 1. `enemy.takeDamage(bullet.damage)` is called
 2. The bullet is deactivated (returned to pool)
 3. A red-tint flash is applied for `hitFlashDuration` ms (80 ms)
 
-Returns `true` if at least one bullet connected this frame. The caller (`GameScene`) uses this to update the registry, emit health events, and check for enemy death.
+Returns one `{ enemy, killed }` entry per enemy hit this frame. The caller
+(`GameScene`) uses this to fire `onDamaged` on survivors, and to explode + remove
+any enemy whose `killed` flag is set. Dead enemies are skipped.
 
 #### `checkEnemyBulletPlayerCollision(enemyBullets, player) → boolean`
 
-Same as above but tests enemy bullets against the player. Returns `true` on any hit.
-
-Both methods return early (`false`) if the target is already dead.
+Tests enemy bullets against the player. Returns `true` on any hit, `false` if the
+player is already dead.
 
 ### Hit Flash
 
 A 80 ms red tint (`0xff0000`) is applied via `setTint`. After the delay the tint is cleared only if the target is still active (i.e. not destroyed between the hit and the callback).
+
+---
+
+## LevelManager
+
+`src/game/systems/LevelManager.ts`
+
+Owns level progress and enemy spawning. Constructed by `GameScene` after the
+player exists:
+
+```ts
+new LevelManager(scene, level, player, interpolationSystem, {
+  onStageChanged: (stageIndex, totalStages) => { /* update HUD registry */ },
+  onLevelCompleted: () => this.triggerVictory(),
+});
+levelManager.start();
+```
+
+### State
+
+- active `LevelConfig`, current `stageIndex`, and a `completed` flag
+- `spawnQueue: string[]` — the current stage's quota flattened to a list of
+  enemy-behavior ids (built by `buildQueueForCurrentStage`)
+- `activeEnemies: EnemyPlane[]` — enemies currently alive on screen
+
+### `update(delta)`
+
+0. **Start delay** — accumulate `delta` into `elapsedMs`; while it is below
+   `spawn.startDelayMs`, return early so the player flies enemy-free for the
+   first few seconds of the level. `elapsedMs` resets in `start()`.
+1. **Prune** — drop any non-alive enemies from `activeEnemies` and unregister
+   them from the `InterpolationSystem` (safety net; `GameScene` removes killed
+   enemies explicitly via `removeEnemy`).
+2. **Spawn** — while `activeEnemies.length < stage.maxConcurrent` and the queue
+   is non-empty, pop the next id and spawn it (off-screen ring placement).
+3. **Stage clear** — while `queue empty && active empty`: if more stages remain,
+   advance `stageIndex`, rebuild the queue, fire `onStageChanged`, and spawn;
+   otherwise set `completed` and fire `onLevelCompleted`. The loop resolves any
+   run of empty stages in a single frame without hanging.
+
+### Spawn placement
+
+`computeSpawnPoint()` picks a random angle around the player and a radius of
+`max(view.width, view.height)/2 + spawn.ringMargin + random(0, spawn.ringJitter)`,
+then clamps Y between `ceiling + minCeilingMargin` and `groundY − minGroundMargin`.
+The radius keeps the ring outside the camera, but the Y clamp can pull a near-top
+or near-bottom point back into view (e.g. when the player hugs the ceiling or
+ground); when the clamped point lands inside `camera.worldView`, X is pushed past
+the nearer view edge (`view.left`/`view.right`, on the side the angle pointed) by
+`ringMargin + random(0, ringJitter)`, so enemies always appear off-screen. X is
+finally normalised with the world horizontal wrap. Each spawned `EnemyPlane` is
+rotated to face the player, registered with the `InterpolationSystem`, and has
+its `'fire'` event wired to `GameScene.spawnEnemyBullet`.
+
+### Accessors
+
+`getActiveEnemies()`, `getStageIndex()`, `getTotalStages()`,
+`getRemainingCount()` (queued + alive), and `removeEnemy(enemy)` (unregister +
+splice). See [levels.md](levels.md) for the level data model.
 
 ---
 
@@ -93,10 +154,14 @@ Manages two full-screen background layers that create a sense of altitude.
 
 ### Layers
 
+`create(bgKey, fgKey)` takes the background and foreground texture keys as
+parameters (the level-namespaced keys built by `backgroundLayerKeys`), so each
+level supplies its own artwork rather than the layers being hardcoded.
+
 | Layer | Texture | Depth | Scroll |
 |---|---|---|---|
-| `bg` | sky background | -100 | Fixed (scroll factor 0) |
-| `fg` | ground foreground | -90 | Fixed (scroll factor 0) |
+| background | `bgKey` (sky) | -100 | Fixed (scroll factor 0) |
+| foreground | `fgKey` (ground) | -90 | Fixed (scroll factor 0) |
 
 Both layers are fixed to the screen (`setScrollFactor(0)`) — they do not move as the camera scrolls horizontally.
 

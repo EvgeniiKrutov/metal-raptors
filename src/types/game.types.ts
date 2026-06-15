@@ -86,6 +86,32 @@ export interface ParallaxLayerConfig {
   parallaxFactor: number;
 }
 
+export interface SpawnConfig {
+  ringMargin: number;
+  ringJitter: number;
+  minCeilingMargin: number;
+  minGroundMargin: number;
+  startDelayMs: number;
+}
+
+export interface StageEnemyGroup {
+  type: string;
+  count: number;
+}
+
+export interface StageConfig {
+  maxConcurrent: number;
+  enemies: StageEnemyGroup[];
+}
+
+export interface LevelConfig {
+  id: string;
+  name: string;
+  background: string;
+  backgroundVariant: string;
+  stages: StageConfig[];
+}
+
 export interface GameConfigData {
   display: { width: number; height: number };
   world:   { width: number; height: number };
@@ -95,6 +121,7 @@ export interface GameConfigData {
   bullet:  BulletConfig;
   camera:  { lerp: number; zoom: number };
   parallax: ParallaxLayerConfig[];
+  spawn:    SpawnConfig;
 }
 
 export type GameState   = 'INIT' | 'LOADING' | 'PLAYING' | 'GAME_OVER';

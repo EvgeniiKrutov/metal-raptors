@@ -11,9 +11,11 @@ const App: React.FC = () => {
     isGameOver,
     isReady,
     isStarted,
+    completed,
     attachListeners,
     startGame,
     restartGame,
+    exitToMenu,
   } = useGame();
 
   const handleGameReady = useCallback(() => {
@@ -27,14 +29,18 @@ const App: React.FC = () => {
       {/* Minimal React HUD (version stamp etc.) */}
       <HUD />
 
-      {/* Start screen — shown until the player presses Start */}
+      {/* Level selector — shown until the player picks a level */}
       {!isStarted && (
-        <StartScreen ready={isReady} onStart={startGame} />
+        <StartScreen ready={isReady} completed={completed} onStart={startGame} />
       )}
 
       {/* Game-over overlay — shown by React so it's always on top */}
       {isGameOver && outcome && (
-        <GameOverScreen outcome={outcome} onPlayAgain={restartGame} />
+        <GameOverScreen
+          outcome={outcome}
+          onRestart={restartGame}
+          onExitToMenu={exitToMenu}
+        />
       )}
     </div>
   );

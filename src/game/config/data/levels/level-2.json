@@ -1,0 +1,11 @@
+{
+  "id": "level-2",
+  "name": "Normandy Run",
+  "background": "normandy",
+  "backgroundVariant": "dusk",
+  "stages": [
+    { "maxConcurrent": 3, "enemies": [ { "type": "fighter", "count": 1 } ] },
+    { "maxConcurrent": 3, "enemies": [ { "type": "fighter", "count": 1 } ] },
+    { "maxConcurrent": 4, "enemies": [ { "type": "fighter", "count": 2 } ] }
+  ]
+}

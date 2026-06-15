@@ -1,0 +1,11 @@
+{
+  "id": "level-1",
+  "name": "First Sortie",
+  "background": "verden",
+  "backgroundVariant": "dawn",
+  "stages": [
+    { "maxConcurrent": 2, "enemies": [ { "type": "fighter", "count": 1 } ] },
+    { "maxConcurrent": 2, "enemies": [ { "type": "fighter", "count": 1 } ] },
+    { "maxConcurrent": 3, "enemies": [ { "type": "fighter", "count": 1 } ] }
+  ]
+}

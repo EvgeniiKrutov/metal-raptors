@@ -6,6 +6,18 @@ import { ControlState } from '../../types/game.types';
 
 const CONTROLS_ALPHA = 0.4;
 
+interface EnemyBarDescriptor {
+  screenX: number;
+  screenY: number;
+  percent: number;
+}
+
+interface StageInfo {
+  stageIndex: number;
+  totalStages: number;
+  remaining: number;
+}
+
 export class UIScene extends Phaser.Scene {
   rexVirtualJoystick!: {
     add(scene: Phaser.Scene, config?: VirtualJoyStick.IConfig): VirtualJoyStick;
@@ -14,6 +26,7 @@ export class UIScene extends Phaser.Scene {
   private playerBar!: Phaser.GameObjects.Graphics;
   private enemyBar!:  Phaser.GameObjects.Graphics;
   private controlsText!: Phaser.GameObjects.Text;
+  private stageText!: Phaser.GameObjects.Text;
 
   private useTouchControls = false;
   private joystick?: VirtualJoyStick;
@@ -26,6 +39,19 @@ export class UIScene extends Phaser.Scene {
   create(): void {
     this.playerBar    = this.add.graphics();
     this.enemyBar     = this.add.graphics();
+
+    this.stageText = this.add.text(
+      gameConfig.display.width - 24,
+      24,
+      '',
+      {
+        fontFamily: 'Courier New',
+        fontSize: '20px',
+        color: '#ffffff',
+        stroke: '#000000',
+        strokeThickness: 3,
+      },
+    ).setOrigin(1, 0).setAlpha(0.85);
 
     this.useTouchControls = isTouchDevice();
 
@@ -125,10 +151,6 @@ export class UIScene extends Phaser.Scene {
   update(): void {
     const pH   = this.registry.get('playerHealth')    as number ?? gameConfig.player.health;
     const pMax = this.registry.get('playerMaxHealth') as number ?? gameConfig.player.health;
-    const eH   = this.registry.get('enemyHealth')     as number ?? gameConfig.enemy.health;
-    const eMax = this.registry.get('enemyMaxHealth')  as number ?? gameConfig.enemy.health;
-    const esx  = this.registry.get('enemyScreenX')   as number ?? 960;
-    const esy  = this.registry.get('enemyScreenY')   as number ?? 100;
 
     this.playerBar.clear();
 
@@ -142,20 +164,30 @@ export class UIScene extends Phaser.Scene {
     );
 
     this.enemyBar.clear();
+    const enemies = (this.registry.get('enemies') as EnemyBarDescriptor[]) ?? [];
     const barW = 120;
-    const ex   = esx - barW / 2;
-    const ey   = esy - 44;
 
-    if (esx > -200 && esx < gameConfig.display.width + 200) {
+    for (const enemy of enemies) {
+      if (enemy.screenX <= -200 || enemy.screenX >= gameConfig.display.width + 200) {
+        continue;
+      }
       this.drawHealthBar(
         this.enemyBar,
-        ex, ey,
+        enemy.screenX - barW / 2,
+        enemy.screenY - 44,
         barW, 14,
-        eH / eMax,
+        enemy.percent,
         0xdc143c,
       );
+    }
 
-      this.enemyBar.fillStyle(0xffffff, 0.7);
+    const stage = this.registry.get('stageInfo') as StageInfo | undefined;
+    if (stage) {
+      this.stageText.setText(
+        `Stage ${stage.stageIndex + 1}/${stage.totalStages} — ${stage.remaining} left`,
+      );
+    } else {
+      this.stageText.setText('');
     }
   }
 

@@ -6,6 +6,7 @@ React wraps the Phaser canvas and provides:
 
 - The `GameContainer` component that mounts/destroys the Phaser game instance
 - The `HUD` overlay (lives outside the canvas, rendered in DOM)
+- The `StartScreen` level selector
 - The `GameOverScreen` overlay
 - The `useGame` hook that bridges Phaser events to React state
 
@@ -15,7 +16,9 @@ React wraps the Phaser canvas and provides:
 
 ### `App` (`src/components/App.tsx`)
 
-Root component. Composes `GameContainer`, `HUD`, and `GameOverScreen`. Passes `useGame` state down as props.
+Root component. Composes `GameContainer`, `HUD`, `StartScreen`, and
+`GameOverScreen`. The selector is shown while `!isStarted`; the game-over overlay
+while `isGameOver`. Passes `useGame` state and handlers down as props.
 
 ### `GameContainer` (`src/components/GameContainer.tsx`)
 
@@ -25,9 +28,18 @@ Mounts a `<div>` that Phaser attaches its canvas to. Creates the `Phaser.Game` i
 
 DOM overlay positioned absolutely over the canvas. Currently a version stamp placeholder (`v1.0`). Health bars are drawn inside `UIScene` on the Phaser canvas rather than here.
 
+### `StartScreen` (`src/components/StartScreen.tsx`)
+
+The level selector. Renders one button per level from `getLevels()`, each with a
+✓ badge when its id is in the persisted `completed` set. Selecting a level calls
+`onStart(levelId)`; buttons are disabled until `ready` (assets loaded).
+
 ### `GameOverScreen` (`src/components/GameOverScreen.tsx`)
 
-Shown when `isGameOver` is true. Displays the outcome (`VICTORY` / `DEFEAT`) and a restart button that calls `restartGame()`.
+Shown when `isGameOver` is true. Takes `outcome`, `onRestart`, and `onExitToMenu`.
+
+- **VICTORY** — *Continue* (`onExitToMenu` → selector) and *Restart* (`onRestart`).
+- **DEFEAT** — *Restart* (`onRestart`) and *Menu* (`onExitToMenu` → selector).
 
 ---
 
@@ -41,19 +53,32 @@ Subscribes to `gameEvents` and exposes React-friendly state.
 |---|---|---|
 | `outcome` | `GameOutcome` | `'VICTORY'`, `'DEFEAT'`, or `null` |
 | `isGameOver` | `boolean` | True after `GAME_OVER` event |
+| `isReady` | `boolean` | True after `ASSETS_LOADED` |
+| `isStarted` | `boolean` | True once a level launches (selector hidden) |
 | `playerHealth` | `{ current, max }` | Updated on `PLAYER_HEALTH_CHANGED` |
-| `enemyHealth` | `{ current, max }` | Updated on `ENEMY_HEALTH_CHANGED` |
+| `completed` | `string[]` | Persisted completed level ids (for ✓ badges) |
+| `selectedLevelId` | `string \| null` | The level currently being played |
 | `attachListeners` | `() => void` | Call once after Phaser game is created |
-| `restartGame` | `() => void` | Resets state and emits `RESTART_GAME` |
+| `startGame` | `(levelId) => void` | Launches a level; emits `START_GAME { levelId }` |
+| `restartGame` | `() => void` | Replays the current level; emits `RESTART_GAME { levelId }` |
+| `exitToMenu` | `() => void` | Returns to the selector; emits `EXIT_TO_MENU` |
 
 ### Event Subscriptions (set up by `attachListeners`)
 
 | Event | Effect |
 |---|---|
-| `GAME_OVER` | Sets `outcome` and `isGameOver = true` |
+| `ASSETS_LOADED` | Sets `isReady = true` |
+| `GAME_OVER` | Sets `outcome` + `isGameOver`; on VICTORY, `markCompleted(levelId)` |
 | `PLAYER_HEALTH_CHANGED` | Updates `playerHealth` |
-| `ENEMY_HEALTH_CHANGED` | Updates `enemyHealth` |
 
-### `restartGame`
+### Flow handlers
 
-Resets `isGameOver` to `false` and `outcome` to `null`, then emits `RESTART_GAME` on `gameEvents`. `GameScene` listens for this event once (`.once`) and calls `scene.restart()`.
+- `startGame(levelId)` — `setSelectedLevelId` + `setIsStarted(true)` + emit
+  `START_GAME { levelId }`. `PreloadScene` (the idle hub) catches it and starts
+  `GameScene` with the level.
+- `restartGame()` — clears game-over and emits `RESTART_GAME { levelId }` with the
+  selected level; `GameScene.handleRestart` does `scene.restart({ levelId })`.
+- `exitToMenu()` — clears game-over, `setIsStarted(false)`, emits `EXIT_TO_MENU`;
+  `GameScene.handleExit` stops `UIScene` and returns to `PreloadScene`.
+
+See [levels.md](levels.md) for completion persistence and the level data model.

@@ -10,18 +10,27 @@ export class PreloadScene extends Phaser.Scene {
   preload(): void {
     this.createLoadingUI();
 
-    this.load.image('player_temp', 'sprites/planes/world_war_1/Sopwith_Camel.png');
-    this.load.image('enemy_temp', 'sprites/planes/world_war_1/Fokker_Dr_1.png');
-    this.load.image('bg', 'backgrounds/verden/verden_background_dawn.png');
-    this.load.image('fg', 'backgrounds/verden/verden_foreground_dawn.png');
-    this.load.image('ground', 'backgrounds/verden/verden_ground_dawn.png');
-    this.load.image('smoke', 'effects/smoke.png');
-    this.load.image('bullet', 'effects/bullet.png');
-    this.load.spritesheet('explosion', 'effects/explosion.png', {
-      frameWidth: 165,
-      frameHeight: 196,
-    });
-    this.load.audio('bullet_shot', 'sounds/bullet_shot_1.wav');
+    if (!this.textures.exists('player_temp')) {
+      this.load.image('player_temp', 'sprites/planes/world_war_1/Sopwith_Camel.png');
+    }
+    if (!this.textures.exists('enemy_temp')) {
+      this.load.image('enemy_temp', 'sprites/planes/world_war_1/Fokker_Dr_1.png');
+    }
+    if (!this.textures.exists('smoke')) {
+      this.load.image('smoke', 'effects/smoke.png');
+    }
+    if (!this.textures.exists('bullet')) {
+      this.load.image('bullet', 'effects/bullet.png');
+    }
+    if (!this.textures.exists('explosion')) {
+      this.load.spritesheet('explosion', 'effects/explosion.png', {
+        frameWidth: 165,
+        frameHeight: 196,
+      });
+    }
+    if (!this.cache.audio.exists('bullet_shot')) {
+      this.load.audio('bullet_shot', 'sounds/bullet_shot_1.wav');
+    }
   }
 
   create(): void {
@@ -29,10 +38,8 @@ export class PreloadScene extends Phaser.Scene {
     this.makeEnemyTexture();
     this.makeExplosionAnimation();
 
-    // Assets are ready, but hold here until the player presses Start on the
-    // React start screen. Once they do, enter the usual game flow.
-    gameEvents.once(EVENTS.START_GAME, () => {
-      this.scene.start('GameScene');
+    gameEvents.once(EVENTS.START_GAME, ({ levelId }: { levelId: string }) => {
+      this.scene.start('GameScene', { levelId });
     });
     gameEvents.emit(EVENTS.ASSETS_LOADED);
   }
@@ -73,10 +80,12 @@ export class PreloadScene extends Phaser.Scene {
   }
 
   private makePlayerTexture(): void {
+    if (this.textures.exists('player')) return;
     this.makePlaneTexture('player_temp', 'player');
   }
 
   private makeEnemyTexture(): void {
+    if (this.textures.exists('enemy')) return;
     this.makePlaneTexture('enemy_temp', 'enemy');
   }
 

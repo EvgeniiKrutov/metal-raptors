@@ -16,16 +16,16 @@ export class ParallaxSystem {
     this.playerMaxY = gameConfig.world.height - 80;
   }
 
-  create(): void {
+  create(bgKey: string, fgKey: string): void {
     const { display } = gameConfig;
 
-    this.scene.add.image(0, 0, 'bg')
+    this.scene.add.image(0, 0, bgKey)
       .setDepth(-100)
       .setOrigin(0)
       .setScrollFactor(0)
       .setDisplaySize(display.width, display.height);
 
-    this.fg = this.scene.add.image(0, display.height, 'fg')
+    this.fg = this.scene.add.image(0, display.height, fgKey)
       .setDepth(-90)
       .setOrigin(0)
       .setScrollFactor(0)

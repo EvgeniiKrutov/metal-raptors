@@ -3,27 +3,32 @@ import { gameConfig } from '../config/gameConfig';
 import { Plane }       from '../entities/Plane';
 import { PlayerPlane } from '../entities/PlayerPlane';
 import { EnemyPlane }  from '../entities/EnemyPlane';
+import { AIContext }   from '../entities/EnemyPlane';
 import { Bullet }      from '../entities/Bullet';
 import { ParallaxSystem } from '../systems/ParallaxSystem';
 import { CombatSystem }   from '../systems/CombatSystem';
 import { InterpolationSystem } from '../systems/InterpolationSystem';
+import { LevelManager } from '../systems/LevelManager';
 import { gameEvents, EVENTS } from '../Game';
-import { EnemyBehaviorConfig, ControlState } from '../../types/game.types';
-import { isTouchDevice } from '../utils/helpers';
+import { ControlState, LevelConfig } from '../../types/game.types';
+import { isTouchDevice, backgroundLayerPaths, backgroundLayerKeys } from '../utils/helpers';
+import { getLevelById, getLevels } from '../config/data/levels/index';
 import { UIScene } from './UIScene';
-import fighterBehavior from '../config/data/enemies/fighter.json';
 
 const EXPLOSION_FRAME_WIDTH = 186;
 
 export class GameScene extends Phaser.Scene {
   player!: PlayerPlane;
-  enemy!: EnemyPlane;
   bullets!: Phaser.Physics.Arcade.Group;
   enemyBullets!: Phaser.Physics.Arcade.Group;
 
   parallaxSystem!: ParallaxSystem;
   combatSystem!: CombatSystem;
   interpolationSystem!: InterpolationSystem;
+  levelManager!: LevelManager;
+
+  private levelId!: string;
+  private level!: LevelConfig;
 
   private keys!: {
     W: Phaser.Input.Keyboard.Key;
@@ -43,8 +48,25 @@ export class GameScene extends Phaser.Scene {
     super({ key: 'GameScene' });
   }
 
+  init(data: { levelId?: string }): void {
+    const fallback = getLevels()[0];
+    this.levelId = data?.levelId ?? fallback.id;
+    this.level = getLevelById(this.levelId) ?? fallback;
+    this.levelId = this.level.id;
+  }
+
+  preload(): void {
+    const paths = backgroundLayerPaths(this.level.background, this.level.backgroundVariant);
+    const keys  = backgroundLayerKeys(this.level.background, this.level.backgroundVariant);
+
+    if (!this.textures.exists(keys.bg))     this.load.image(keys.bg, paths.bg);
+    if (!this.textures.exists(keys.fg))     this.load.image(keys.fg, paths.fg);
+    if (!this.textures.exists(keys.ground)) this.load.image(keys.ground, paths.ground);
+  }
+
   create(): void {
-    const { world, display, camera } = gameConfig;
+    const { world, camera } = gameConfig;
+    const keys = backgroundLayerKeys(this.level.background, this.level.backgroundVariant);
 
     this.isGameOver     = false;
     this.useTouch       = isTouchDevice();
@@ -57,9 +79,9 @@ export class GameScene extends Phaser.Scene {
     this.interpolationSystem = new InterpolationSystem(this);
 
     this.parallaxSystem = new ParallaxSystem(this);
-    this.parallaxSystem.create();
+    this.parallaxSystem.create(keys.bg, keys.fg);
 
-    this.createGroundVisual();
+    this.createGroundVisual(keys.ground);
 
     this.bullets = this.physics.add.group({
       classType: Bullet,
@@ -86,20 +108,6 @@ export class GameScene extends Phaser.Scene {
       this.spawnBullet(x, y, angle);
     });
 
-    const behavior = fighterBehavior as EnemyBehaviorConfig;
-    this.enemy = new EnemyPlane(
-      this,
-      world.width * 0.75,
-      world.height * 0.1,
-      behavior,
-    );
-
-    this.interpolationSystem.register(this.enemy);
-
-    this.enemy.on('fire', (x: number, y: number, angle: number) => {
-      this.spawnEnemyBullet(x, y, angle);
-    });
-
     const cam = this.cameras.main;
     cam.setBounds(0, 0, world.width, world.height);
     cam.setRoundPixels(false);
@@ -123,10 +131,25 @@ export class GameScene extends Phaser.Scene {
 
     this.registry.set('playerHealth',    gameConfig.player.health);
     this.registry.set('playerMaxHealth', gameConfig.player.health);
-    this.registry.set('enemyHealth',     this.enemy.maxHealth);
-    this.registry.set('enemyMaxHealth',  this.enemy.maxHealth);
-    this.registry.set('enemyScreenX',    display.width * 0.75);
-    this.registry.set('enemyScreenY',    display.height * 0.45);
+    this.registry.set('enemies', []);
+
+    this.levelManager = new LevelManager(
+      this,
+      this.level,
+      this.player,
+      this.interpolationSystem,
+      {
+        onStageChanged: (stageIndex, totalStages) => {
+          this.registry.set('stageInfo', {
+            stageIndex,
+            totalStages,
+            remaining: this.levelManager.getRemainingCount(),
+          });
+        },
+        onLevelCompleted: () => this.triggerVictory(),
+      },
+    );
+    this.levelManager.start();
 
     if (this.scene.isActive('UIScene')) {
       this.scene.stop('UIScene');
@@ -134,8 +157,10 @@ export class GameScene extends Phaser.Scene {
     this.scene.launch('UIScene');
 
     gameEvents.once(EVENTS.RESTART_GAME, this.handleRestart, this);
+    gameEvents.once(EVENTS.EXIT_TO_MENU, this.handleExit, this);
     this.events.once('shutdown', () => {
       gameEvents.off(EVENTS.RESTART_GAME, this.handleRestart, this);
+      gameEvents.off(EVENTS.EXIT_TO_MENU, this.handleExit, this);
     });
 
     gameEvents.emit(EVENTS.GAME_STARTED);
@@ -149,6 +174,7 @@ export class GameScene extends Phaser.Scene {
 
     const { world } = gameConfig;
     const groundY = world.height - 80;
+    const cam = this.cameras.main;
 
     const inputState = this.useTouch
       ? this.readTouchInput()
@@ -157,33 +183,21 @@ export class GameScene extends Phaser.Scene {
     this.player.handleInput(inputState, delta);
     this.player.updatePhysics(delta);
 
-    const cam = this.cameras.main;
-    const isPlayerVisible = this.isInCameraView(this.player, cam);
-    const isEnemyVisible  = this.isInCameraView(this.enemy,  cam);
-    const aiCtx = {
-      target: {
-        x: this.player.x,
-        y: this.player.y,
-        rotation: this.player.rotation,
-        body: this.player.body as Phaser.Physics.Arcade.Body,
-      },
-      threats: this.bullets,
-      targetVisible: isPlayerVisible,
-      enemyVisible:  isEnemyVisible,
-      groundY: world.height - 80,
-    };
-    this.enemy.updateAI(delta, aiCtx);
+    this.levelManager.update(delta);
+    if (this.isGameOver) return;
+
+    const enemies = this.levelManager.getActiveEnemies();
+
+    for (const enemy of enemies) {
+      if (!enemy.isAlive()) continue;
+      enemy.updateAI(delta, this.buildAIContext(enemy));
+      enemy.updateSmoke();
+    }
 
     this.player.updateSmoke();
-    this.enemy.updateSmoke();
 
-    if (this.player.x < 0)          this.player.x = world.width;
+    if (this.player.x < 0)           this.player.x = world.width;
     if (this.player.x > world.width) this.player.x = 0;
-
-    if (this.enemy.isAlive()) {
-      if (this.enemy.x < 0)           this.enemy.x = world.width;
-      if (this.enemy.x > world.width) this.enemy.x = 0;
-    }
 
     if (this.player.y < 20) {
       this.player.y = 20;
@@ -191,13 +205,20 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (this.player.y >= groundY) {
-      this.triggerGameOver('DEFEAT', this.player, 'ground');
+      this.triggerDefeat(this.player, 'ground');
       return;
     }
 
-    if (this.enemy.isAlive() && this.enemy.y >= groundY) {
-      this.triggerGameOver('VICTORY', this.enemy, 'ground');
-      return;
+    const destroyed = new Set<EnemyPlane>();
+
+    for (const enemy of enemies) {
+      if (!enemy.isAlive()) continue;
+      if (enemy.x < 0)           enemy.x = world.width;
+      if (enemy.x > world.width) enemy.x = 0;
+      if (enemy.y >= groundY) {
+        enemy.takeDamage(enemy.currentHealth);
+        destroyed.add(enemy);
+      }
     }
 
     const cull = this.getCameraCullBounds(cam, 64);
@@ -224,24 +245,17 @@ export class GameScene extends Phaser.Scene {
       }
     });
 
-    const hitOccurred = this.combatSystem.checkBulletEnemyCollision(
-      this.bullets,
-      this.enemy,
-    );
-
-    if (hitOccurred) {
-      this.enemy.onDamaged(aiCtx);
-
-      this.registry.set('enemyHealth', this.enemy.currentHealth);
-      gameEvents.emit(EVENTS.ENEMY_HEALTH_CHANGED, {
-        current: this.enemy.currentHealth,
-        max: this.enemy.maxHealth,
-      });
-
-      if (!this.enemy.isAlive()) {
-        this.triggerGameOver('VICTORY', this.enemy, 'air');
-        return;
+    const hits = this.combatSystem.checkBulletEnemiesCollision(this.bullets, enemies);
+    for (const hit of hits) {
+      if (hit.killed) {
+        destroyed.add(hit.enemy);
+      } else {
+        hit.enemy.onDamaged(this.buildAIContext(hit.enemy));
       }
+    }
+
+    for (const enemy of destroyed) {
+      this.explodeEnemy(enemy);
     }
 
     const playerHit = this.combatSystem.checkEnemyBulletPlayerCollision(
@@ -256,21 +270,59 @@ export class GameScene extends Phaser.Scene {
         max: this.player.maxHealth,
       });
 
-      // Slight camera shake while the player is in critical (≤30%) health.
       if (this.player.isAlive() && this.player.getHealthPercent() <= 0.3) {
         cam.shake(200, 0.004);
       }
 
       if (!this.player.isAlive()) {
-        this.triggerGameOver('DEFEAT', this.player, 'fall');
+        this.triggerDefeat(this.player, 'fall');
         return;
       }
     }
 
-    this.registry.set('enemyScreenX', this.enemy.x - cam.scrollX);
-    this.registry.set('enemyScreenY', this.enemy.y - cam.scrollY);
+    this.writeEnemyRegistry(cam);
 
     this.parallaxSystem.update(cam, this.player.y);
+  }
+
+  private buildAIContext(enemy: EnemyPlane): AIContext {
+    const cam = this.cameras.main;
+    return {
+      target: {
+        x: this.player.x,
+        y: this.player.y,
+        rotation: this.player.rotation,
+        body: this.player.body as Phaser.Physics.Arcade.Body,
+      },
+      threats: this.bullets,
+      targetVisible: this.isInCameraView(this.player, cam),
+      enemyVisible:  this.isInCameraView(enemy, cam),
+      groundY: gameConfig.world.height - 80,
+    };
+  }
+
+  private writeEnemyRegistry(cam: Phaser.Cameras.Scene2D.Camera): void {
+    const descriptors = this.levelManager.getActiveEnemies()
+      .filter((enemy) => enemy.isAlive())
+      .map((enemy) => ({
+        screenX: enemy.x - cam.scrollX,
+        screenY: enemy.y - cam.scrollY,
+        percent: enemy.getHealthPercent(),
+      }));
+
+    this.registry.set('enemies', descriptors);
+    this.registry.set('stageInfo', {
+      stageIndex: this.levelManager.getStageIndex(),
+      totalStages: this.levelManager.getTotalStages(),
+      remaining: this.levelManager.getRemainingCount(),
+    });
+  }
+
+  private explodeEnemy(enemy: EnemyPlane): void {
+    if (!enemy.visible) return;
+    this.spawnExplosion(enemy.x, enemy.y, enemy.displayWidth, 0.5, false);
+    enemy.hideWreck();
+    this.levelManager.removeEnemy(enemy);
   }
 
   private readKeyboardInput(): ControlState {
@@ -288,7 +340,6 @@ export class GameScene extends Phaser.Scene {
     if (ui && ui.scene.isActive() && ui.isTouchActive()) {
       return ui.getControlState();
     }
-    // UIScene not ready yet — no input this frame.
     return { up: false, down: false, left: false, right: false, fire: false };
   }
 
@@ -324,23 +375,33 @@ export class GameScene extends Phaser.Scene {
     };
   }
 
-  private createGroundVisual(): void {
+  private createGroundVisual(groundKey: string): void {
     const { world } = gameConfig;
     const groundY = world.height - 80;
 
-    this.add.tileSprite(0, groundY, world.width, 200, 'ground')
+    this.add.tileSprite(0, groundY, world.width, 200, groundKey)
       .setOrigin(0, 0)
       .setDepth(-50);
   }
 
-  private triggerGameOver(
-    outcome: 'VICTORY' | 'DEFEAT',
-    plane: Plane,
-    cause: 'air' | 'fall' | 'ground',
-  ): void {
+  private triggerVictory(): void {
     if (this.isGameOver) return;
     this.isGameOver     = true;
-    this.pendingOutcome = outcome;
+    this.pendingOutcome = 'VICTORY';
+
+    this.time.delayedCall(800, () => {
+      this.scene.pause();
+      gameEvents.emit(EVENTS.GAME_OVER, {
+        outcome: this.pendingOutcome,
+        levelId: this.levelId,
+      });
+    });
+  }
+
+  private triggerDefeat(plane: Plane, cause: 'fall' | 'ground'): void {
+    if (this.isGameOver) return;
+    this.isGameOver     = true;
+    this.pendingOutcome = 'DEFEAT';
 
     this.interpolationSystem.unregister(plane);
 
@@ -348,13 +409,9 @@ export class GameScene extends Phaser.Scene {
     cam.startFollow(this.player, true, gameConfig.camera.lerp, gameConfig.camera.lerp);
 
     switch (cause) {
-      case 'air':
-        this.spawnExplosion(plane.x, plane.y, plane.displayWidth, 0.5);
-        plane.hideWreck();
-        break;
       case 'ground': {
         const groundY = gameConfig.world.height - 80;
-        this.spawnExplosion(plane.x, groundY, plane.displayWidth, 1);
+        this.spawnExplosion(plane.x, groundY, plane.displayWidth, 1, true);
         plane.hideWreck();
         break;
       }
@@ -367,32 +424,54 @@ export class GameScene extends Phaser.Scene {
 
   private updateGameOver(delta: number): void {
     const plane = this.crashingPlane;
-    if (!plane) return; // nothing falling; waiting on the explosion to finish
+    if (!plane) return;
 
     const groundY = gameConfig.world.height - 80;
-    if (plane.updateCrash(delta, groundY)) {
-      this.spawnExplosion(plane.x, groundY, plane.displayWidth, 1);
+    const reachedGround = plane.updateCrash(delta, groundY);
+
+    this.parallaxSystem.update(this.cameras.main, plane.y);
+
+    if (reachedGround) {
+      this.spawnExplosion(plane.x, groundY, plane.displayWidth, 1, true);
       plane.hideWreck();
       this.crashingPlane = null;
     }
   }
 
-  private spawnExplosion(x: number, y: number, planeSize: number, originY: number): void {
+  private spawnExplosion(
+    x: number,
+    y: number,
+    planeSize: number,
+    originY: number,
+    endsGame: boolean,
+  ): void {
     const boom = this.add.sprite(x, y, 'explosion', 0);
     boom.setOrigin(0.5, originY);
-    boom.setScale(planeSize / EXPLOSION_FRAME_WIDTH); // match the plane's size
+    boom.setScale(planeSize / EXPLOSION_FRAME_WIDTH);
     boom.setDepth(20);
     boom.play('explosion');
 
     boom.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
-      this.scene.pause();
-      gameEvents.emit(EVENTS.GAME_OVER, { outcome: this.pendingOutcome });
+      boom.destroy();
+      if (endsGame) {
+        this.scene.pause();
+        gameEvents.emit(EVENTS.GAME_OVER, {
+          outcome: this.pendingOutcome,
+          levelId: this.levelId,
+        });
+      }
     });
   }
 
-  private handleRestart(): void {
+  private handleRestart(data?: { levelId?: string }): void {
     this.isGameOver = false;
     this.scene.stop('UIScene');
-    this.scene.restart();
+    this.scene.restart({ levelId: data?.levelId ?? this.levelId });
+  }
+
+  private handleExit(): void {
+    this.isGameOver = false;
+    this.scene.stop('UIScene');
+    this.scene.start('PreloadScene');
   }
 }

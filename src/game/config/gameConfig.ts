@@ -3,6 +3,7 @@ import playerJson  from './data/player.json';
 import bulletJson  from './data/bullet.json';
 import physicsJson from './data/physics.json';
 import worldJson   from './data/world.json';
+import spawnJson   from './data/spawn.json';
 
 export const gameConfig: GameConfigData = {
   display:  worldJson.display,
@@ -12,6 +13,7 @@ export const gameConfig: GameConfigData = {
   physics:  physicsJson,
   player:   playerJson,
   bullet:   bulletJson,
+  spawn:    spawnJson,
   enemy: {
     sprite:       'enemy',
     width:        64,

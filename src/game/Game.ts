@@ -8,6 +8,6 @@ export const EVENTS = {
   GAME_STARTED:          'gameStarted',
   GAME_OVER:             'gameOver',
   RESTART_GAME:          'restartGame',
+  EXIT_TO_MENU:          'exitToMenu',
   PLAYER_HEALTH_CHANGED: 'playerHealthChanged',
-  ENEMY_HEALTH_CHANGED:  'enemyHealthChanged',
 } as const;

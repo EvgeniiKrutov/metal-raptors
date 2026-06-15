@@ -32,6 +32,23 @@ export function healthColour(percent: number): number {
   return 0xff2020;
 }
 
+export function backgroundLayerPaths(set: string, variant: string) {
+  const base = `backgrounds/${set}/${set}`;
+  return {
+    bg:     `${base}_background_${variant}.png`,
+    fg:     `${base}_foreground_${variant}.png`,
+    ground: `${base}_ground_${variant}.png`,
+  };
+}
+
+export function backgroundLayerKeys(set: string, variant: string) {
+  return {
+    bg:     `bg_${set}_${variant}`,
+    fg:     `fg_${set}_${variant}`,
+    ground: `ground_${set}_${variant}`,
+  };
+}
+
 /**
  * True on touch-capable devices (phones/tablets). Used to decide whether to
  * show the on-screen joystick + fire button instead of keyboard controls.

@@ -48,6 +48,17 @@ Root shape of the merged game configuration object (`gameConfig`).
 | `bullet` | `BulletConfig` |
 | `camera` | `{ lerp, zoom }` |
 | `parallax` | `ParallaxLayerConfig[]` |
+| `spawn` | `SpawnConfig` |
+
+### Level Interfaces
+
+Data model for configurable levels (see [levels.md](levels.md)):
+
+| Interface | Fields |
+|---|---|
+| `StageEnemyGroup` | `type` (enemy-behavior id), `count` |
+| `StageConfig` | `maxConcurrent`, `enemies: StageEnemyGroup[]` |
+| `LevelConfig` | `id`, `name`, `background`, `backgroundVariant`, `stages: StageConfig[]` |
 
 ### Other Interfaces
 
@@ -56,6 +67,7 @@ Root shape of the merged game configuration object (`gameConfig`).
 | `PhysicsConfig` | `gravity`, `dragCoefficient`, `liftCoefficient`, `stallSpeed`, `stallRotationRate` | `PhysicsSystem` |
 | `BulletConfig` | `speed`, `width`, `height` | `PreloadScene`, `GameScene` |
 | `ParallaxLayerConfig` | `key`, `depth`, `parallaxFactor` | `ParallaxSystem` |
+| `SpawnConfig` | `ringMargin`, `ringJitter`, `minCeilingMargin`, `minGroundMargin`, `startDelayMs` | `LevelManager` |
 
 ### Types
 
@@ -86,15 +98,32 @@ Player plane stats as a `PlaneConfig`.
 
 Bullet speed, width, height.
 
-### `enemies/fighter.json`
+### `spawn.json`
 
-Fighter archetype — the only enemy type currently. Shape matches `EnemyBehaviorConfig`. To add a new enemy type, create a new JSON file with the same shape and pass it to `EnemyPlane`.
+Off-screen-ring spawn tuning surfaced as `gameConfig.spawn` (`SpawnConfig`).
+`startDelayMs` is the enemy-free grace period at the start of each level.
+
+### `enemies/fighter.json` + `enemies/index.ts`
+
+`fighter.json` is the only enemy archetype currently; its shape matches
+`EnemyBehaviorConfig`. `enemies/index.ts` is the registry: `ENEMY_BEHAVIORS`
+(id → config) plus `getEnemyBehavior(id)` (throws on an unknown id). Stages
+reference enemies by this id. To add a new type, drop in a JSON file and register
+it here.
+
+### `levels/*.json` + `levels/index.ts`
+
+Bundled level definitions matching `LevelConfig`, with `levels/index.ts` exposing
+the ordered `LEVELS` array, `getLevels()`, and `getLevelById(id)`. See
+[levels.md](levels.md).
 
 ---
 
 ## `gameConfig` Object
 
-`src/game/config/gameConfig.ts` loads and merges the individual JSON files into a single `GameConfigData` object exported as `gameConfig`. All systems import from this single point.
+`src/game/config/gameConfig.ts` loads and merges the individual JSON files
+(`world`, `physics`, `player`, `bullet`, `spawn`) into a single `GameConfigData`
+object exported as `gameConfig`. All systems import from this single point.
 
 ---
 
@@ -108,5 +137,13 @@ Fighter archetype — the only enemy type currently. Shape matches `EnemyBehavio
 | `lerp` | `(a, b, t) → number` | Linear interpolation |
 | `mapRange` | `(value, inMin, inMax, outMin, outMax) → number` | Map a value from one range to another |
 | `healthColour` | `(percent) → number` | Returns green / yellow / red colour based on HP% |
+| `backgroundLayerPaths` | `(set, variant) → { bg, fg, ground }` | Derive the three layer image paths for a background |
+| `backgroundLayerKeys` | `(set, variant) → { bg, fg, ground }` | Derive the level-namespaced texture keys |
 
 `healthColour` thresholds: green above 60%, yellow above 30%, red at or below 30%.
+
+## Level Progress (`src/game/utils/progress.ts`)
+
+`localStorage`-backed completion tracking (key `mr_completed_levels`), guarded
+with try/catch and an in-memory fallback: `getCompleted()`, `isCompleted(id)`,
+`markCompleted(id)`.

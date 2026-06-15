@@ -3,10 +3,11 @@ import { GameOutcome } from '../types/game.types';
 
 interface Props {
   outcome: Exclude<GameOutcome, null>;
-  onPlayAgain: () => void;
+  onRestart: () => void;
+  onExitToMenu: () => void;
 }
 
-const GameOverScreen: React.FC<Props> = ({ outcome, onPlayAgain }) => {
+const GameOverScreen: React.FC<Props> = ({ outcome, onRestart, onExitToMenu }) => {
   const isVictory = outcome === 'VICTORY';
 
   return (
@@ -24,11 +25,30 @@ const GameOverScreen: React.FC<Props> = ({ outcome, onPlayAgain }) => {
           textTransform: 'uppercase',
         }}
       >
-        {isVictory ? 'Enemy destroyed!' : 'Your plane went down.'}
+        {isVictory ? 'Level cleared!' : 'Your plane went down.'}
       </p>
-      <button className="play-again-btn" onClick={onPlayAgain}>
-        ▶ Play Again
-      </button>
+
+      <div className="game-over-actions">
+        {isVictory ? (
+          <>
+            <button className="play-again-btn" onClick={onExitToMenu}>
+              ▣ Continue
+            </button>
+            <button className="play-again-btn" onClick={onRestart}>
+              ↻ Restart
+            </button>
+          </>
+        ) : (
+          <>
+            <button className="play-again-btn" onClick={onRestart}>
+              ↻ Restart
+            </button>
+            <button className="play-again-btn" onClick={onExitToMenu}>
+              ▣ Menu
+            </button>
+          </>
+        )}
+      </div>
     </div>
   );
 };

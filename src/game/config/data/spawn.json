@@ -1,0 +1,7 @@
+{
+  "ringMargin": 220,
+  "ringJitter": 160,
+  "minCeilingMargin": 80,
+  "minGroundMargin": 200,
+  "startDelayMs": 3000
+}

@@ -3,6 +3,11 @@ import { Bullet } from '../entities/Bullet';
 import { EnemyPlane } from '../entities/EnemyPlane';
 import { PlayerPlane } from '../entities/PlayerPlane';
 
+export interface EnemyHit {
+  enemy: EnemyPlane;
+  killed: boolean;
+}
+
 export class CombatSystem {
   private scene: Phaser.Scene;
   private hitFlashDuration: number = 80;
@@ -11,32 +16,40 @@ export class CombatSystem {
     this.scene = scene;
   }
 
-  checkBulletEnemyCollision(
+  checkBulletEnemiesCollision(
     bullets: Phaser.Physics.Arcade.Group,
-    enemy: EnemyPlane,
-  ): boolean {
-    if (!enemy.isAlive()) return false;
+    enemies: EnemyPlane[],
+  ): EnemyHit[] {
+    const hits: EnemyHit[] = [];
 
-    let hit = false;
+    for (const enemy of enemies) {
+      if (!enemy.isAlive()) continue;
 
-    this.scene.physics.overlap(
-      enemy,
-      bullets,
-      (obj1, obj2) => {
-        const bullet = obj2 as Bullet;
-        if (!bullet.active) return;
+      let hit = false;
+      let killed = false;
 
-        const isDead = enemy.takeDamage(bullet.damage);
-        bullet.deactivate();
-        hit = true;
+      this.scene.physics.overlap(
+        enemy,
+        bullets,
+        (obj1, obj2) => {
+          const bullet = obj2 as Bullet;
+          if (!bullet.active) return;
 
-        this.flashHit(enemy, isDead);
-      },
-      undefined,
-      this,
-    );
+          const isDead = enemy.takeDamage(bullet.damage);
+          bullet.deactivate();
+          hit = true;
+          if (isDead) killed = true;
 
-    return hit;
+          this.flashHit(enemy, isDead);
+        },
+        undefined,
+        this,
+      );
+
+      if (hit) hits.push({ enemy, killed });
+    }
+
+    return hits;
   }
 
   checkEnemyBulletPlayerCollision(
