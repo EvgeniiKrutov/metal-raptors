@@ -81,7 +81,7 @@ namespaced keys (`bg_<set>_<variant>`, …), guarded by `textures.exists`. See
 8. Player health + an empty `enemies` array written to the registry
 9. `LevelManager` constructed (with `onStageChanged` / `onLevelCompleted` callbacks) and `start()`ed — it drives all enemy spawning
 10. `UIScene` launched in parallel
-11. `RESTART_GAME` and `EXIT_TO_MENU` listeners registered (removed on `shutdown`); `GAME_STARTED` emitted
+11. The `ESC` key handler is registered for pausing; `RESTART_GAME`, `EXIT_TO_MENU`, and `RESUME_GAME` listeners registered (removed on `shutdown`); `GAME_STARTED` emitted
 
 ### Update Loop
 
@@ -110,6 +110,22 @@ Individual enemy death is *never* an immediate VICTORY — only the `LevelManage
 The flag `isGameOver` prevents re-entry. `handleRestart({ levelId })` restarts the
 scene with the stored level; `handleExit()` stops `UIScene` and returns to
 `PreloadScene` (the idle hub).
+
+### Pause / Resume
+
+Pressing `ESC` during play calls `handlePause()`, which pauses `UIScene` then
+`GameScene` and emits `GAME_PAUSED`. `Scene.pause()` keeps each scene rendering its
+last frame but skips every update/system step, so all positions, velocities,
+tweens, and timers freeze in place and resume exactly where they left off. The
+pause window itself is rendered by React (see [react-integration.md](react-integration.md)).
+
+- `handlePause()` — no-op when already game-over or already paused; pauses both scenes and emits `GAME_PAUSED`.
+- `handleResume()` — fired by the React *Resume* button via `RESUME_GAME`; resumes both scenes from their frozen state.
+- The React *Menu* button reuses the existing `EXIT_TO_MENU` → `handleExit()` path, which shuts the scene down and releases its resources even while paused.
+
+Because a paused scene's input is disabled, `ESC` only opens the pause window —
+resuming is driven by the React overlay through the global `gameEvents` emitter,
+which fires regardless of scene state.
 
 ---
 

@@ -8,6 +8,7 @@ React wraps the Phaser canvas and provides:
 - The `HUD` overlay (lives outside the canvas, rendered in DOM)
 - The `StartScreen` level selector
 - The `GameOverScreen` overlay
+- The `PauseScreen` overlay
 - The `useGame` hook that bridges Phaser events to React state
 
 ---
@@ -16,9 +17,10 @@ React wraps the Phaser canvas and provides:
 
 ### `App` (`src/components/App.tsx`)
 
-Root component. Composes `GameContainer`, `HUD`, `StartScreen`, and
-`GameOverScreen`. The selector is shown while `!isStarted`; the game-over overlay
-while `isGameOver`. Passes `useGame` state and handlers down as props.
+Root component. Composes `GameContainer`, `HUD`, `StartScreen`, `PauseScreen`, and
+`GameOverScreen`. The selector is shown while `!isStarted`; the pause overlay while
+`isStarted && isPaused && !isGameOver`; the game-over overlay while `isGameOver`.
+Passes `useGame` state and handlers down as props.
 
 ### `GameContainer` (`src/components/GameContainer.tsx`)
 
@@ -41,6 +43,17 @@ Shown when `isGameOver` is true. Takes `outcome`, `onRestart`, and `onExitToMenu
 - **VICTORY** — *Continue* (`onExitToMenu` → selector) and *Restart* (`onRestart`).
 - **DEFEAT** — *Restart* (`onRestart`) and *Menu* (`onExitToMenu` → selector).
 
+### `PauseScreen` (`src/components/PauseScreen.tsx`)
+
+Shown when the game is paused (`isStarted && isPaused && !isGameOver`). Takes
+`onResume` and `onExitToMenu`.
+
+- *Resume* (`onResume` → `resumeGame`) — emits `RESUME_GAME`; `GameScene` unfreezes both scenes.
+- *Menu* (`onExitToMenu`) — reuses the standard exit path, returning to the selector and releasing the scene's resources.
+
+The pause window is opened from the Phaser side (`ESC` → `GAME_PAUSED`); see
+[scenes.md](scenes.md) for the freeze/resume mechanics.
+
 ---
 
 ## `useGame` Hook (`src/hooks/useGame.ts`)
@@ -53,6 +66,7 @@ Subscribes to `gameEvents` and exposes React-friendly state.
 |---|---|---|
 | `outcome` | `GameOutcome` | `'VICTORY'`, `'DEFEAT'`, or `null` |
 | `isGameOver` | `boolean` | True after `GAME_OVER` event |
+| `isPaused` | `boolean` | True after `GAME_PAUSED`; cleared on resume / exit |
 | `isReady` | `boolean` | True after `ASSETS_LOADED` |
 | `isStarted` | `boolean` | True once a level launches (selector hidden) |
 | `playerHealth` | `{ current, max }` | Updated on `PLAYER_HEALTH_CHANGED` |
@@ -61,6 +75,7 @@ Subscribes to `gameEvents` and exposes React-friendly state.
 | `attachListeners` | `() => void` | Call once after Phaser game is created |
 | `startGame` | `(levelId) => void` | Launches a level; emits `START_GAME { levelId }` |
 | `restartGame` | `() => void` | Replays the current level; emits `RESTART_GAME { levelId }` |
+| `resumeGame` | `() => void` | Unfreezes a paused game; emits `RESUME_GAME` |
 | `exitToMenu` | `() => void` | Returns to the selector; emits `EXIT_TO_MENU` |
 
 ### Event Subscriptions (set up by `attachListeners`)
@@ -69,6 +84,7 @@ Subscribes to `gameEvents` and exposes React-friendly state.
 |---|---|
 | `ASSETS_LOADED` | Sets `isReady = true` |
 | `GAME_OVER` | Sets `outcome` + `isGameOver`; on VICTORY, `markCompleted(levelId)` |
+| `GAME_PAUSED` | Sets `isPaused = true` (shows the pause overlay) |
 | `PLAYER_HEALTH_CHANGED` | Updates `playerHealth` |
 
 ### Flow handlers
@@ -78,7 +94,9 @@ Subscribes to `gameEvents` and exposes React-friendly state.
   `GameScene` with the level.
 - `restartGame()` — clears game-over and emits `RESTART_GAME { levelId }` with the
   selected level; `GameScene.handleRestart` does `scene.restart({ levelId })`.
-- `exitToMenu()` — clears game-over, `setIsStarted(false)`, emits `EXIT_TO_MENU`;
-  `GameScene.handleExit` stops `UIScene` and returns to `PreloadScene`.
+- `resumeGame()` — clears `isPaused` and emits `RESUME_GAME`; `GameScene.handleResume`
+  unfreezes `GameScene` and `UIScene`.
+- `exitToMenu()` — clears game-over and pause, `setIsStarted(false)`, emits
+  `EXIT_TO_MENU`; `GameScene.handleExit` stops `UIScene` and returns to `PreloadScene`.
 
 See [levels.md](levels.md) for completion persistence and the level data model.

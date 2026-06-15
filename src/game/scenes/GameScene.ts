@@ -156,11 +156,15 @@ export class GameScene extends Phaser.Scene {
     }
     this.scene.launch('UIScene');
 
+    kb.on('keydown-ESC', this.handlePause, this);
+
     gameEvents.once(EVENTS.RESTART_GAME, this.handleRestart, this);
     gameEvents.once(EVENTS.EXIT_TO_MENU, this.handleExit, this);
+    gameEvents.on(EVENTS.RESUME_GAME, this.handleResume, this);
     this.events.once('shutdown', () => {
       gameEvents.off(EVENTS.RESTART_GAME, this.handleRestart, this);
       gameEvents.off(EVENTS.EXIT_TO_MENU, this.handleExit, this);
+      gameEvents.off(EVENTS.RESUME_GAME, this.handleResume, this);
     });
 
     gameEvents.emit(EVENTS.GAME_STARTED);
@@ -471,6 +475,26 @@ export class GameScene extends Phaser.Scene {
         });
       }
     });
+  }
+
+  private handlePause(): void {
+    if (this.isGameOver) return;
+    if (this.scene.isPaused()) return;
+
+    if (this.scene.isActive('UIScene')) {
+      this.scene.pause('UIScene');
+    }
+    this.scene.pause();
+    gameEvents.emit(EVENTS.GAME_PAUSED);
+  }
+
+  private handleResume(): void {
+    if (!this.scene.isPaused()) return;
+
+    if (this.scene.isPaused('UIScene')) {
+      this.scene.resume('UIScene');
+    }
+    this.scene.resume();
   }
 
   private handleRestart(data?: { levelId?: string }): void {

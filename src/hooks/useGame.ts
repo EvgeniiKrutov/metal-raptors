@@ -6,6 +6,7 @@ import { getCompleted, markCompleted } from '../game/utils/progress';
 export function useGame() {
   const [outcome, setOutcome] = useState<GameOutcome>(null);
   const [isGameOver, setIsGameOver] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
 
   const [isReady, setIsReady]     = useState(false);
   const [isStarted, setIsStarted] = useState(false);
@@ -39,6 +40,10 @@ export function useGame() {
         setPlayerHealth({ current, max });
       },
     );
+
+    gameEvents.on(EVENTS.GAME_PAUSED, () => {
+      setIsPaused(true);
+    });
   }, []);
 
   const startGame = useCallback((levelId: string) => {
@@ -53,9 +58,15 @@ export function useGame() {
     gameEvents.emit(EVENTS.RESTART_GAME, { levelId: selectedLevelId });
   }, [selectedLevelId]);
 
+  const resumeGame = useCallback(() => {
+    setIsPaused(false);
+    gameEvents.emit(EVENTS.RESUME_GAME);
+  }, []);
+
   const exitToMenu = useCallback(() => {
     setIsGameOver(false);
     setOutcome(null);
+    setIsPaused(false);
     setIsStarted(false);
     gameEvents.emit(EVENTS.EXIT_TO_MENU);
   }, []);
@@ -63,6 +74,7 @@ export function useGame() {
   return {
     outcome,
     isGameOver,
+    isPaused,
     isReady,
     isStarted,
     playerHealth,
@@ -71,6 +83,7 @@ export function useGame() {
     attachListeners,
     startGame,
     restartGame,
+    resumeGame,
     exitToMenu,
   };
 }
