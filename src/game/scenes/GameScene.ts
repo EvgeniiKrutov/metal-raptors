@@ -345,7 +345,7 @@ export class GameScene extends Phaser.Scene {
     this.interpolationSystem.unregister(plane);
 
     const cam = this.cameras.main;
-    cam.startFollow(plane, true, gameConfig.camera.lerp, gameConfig.camera.lerp);
+    cam.startFollow(this.player, true, gameConfig.camera.lerp, gameConfig.camera.lerp);
 
     switch (cause) {
       case 'air':

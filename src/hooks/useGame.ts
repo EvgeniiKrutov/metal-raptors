@@ -6,10 +6,17 @@ export function useGame() {
   const [outcome, setOutcome] = useState<GameOutcome>(null);
   const [isGameOver, setIsGameOver] = useState(false);
 
+  const [isReady, setIsReady]     = useState(false);
+  const [isStarted, setIsStarted] = useState(false);
+
   const [playerHealth, setPlayerHealth] = useState({ current: 100, max: 100 });
   const [enemyHealth,  setEnemyHealth]  = useState({ current: 100, max: 100 });
 
   const attachListeners = useCallback(() => {
+    gameEvents.on(EVENTS.ASSETS_LOADED, () => {
+      setIsReady(true);
+    });
+
     gameEvents.on(EVENTS.GAME_OVER, ({ outcome }: { outcome: 'VICTORY' | 'DEFEAT' }) => {
       setOutcome(outcome);
       setIsGameOver(true);
@@ -30,6 +37,11 @@ export function useGame() {
     );
   }, []);
 
+  const startGame = useCallback(() => {
+    setIsStarted(true);
+    gameEvents.emit(EVENTS.START_GAME);
+  }, []);
+
   const restartGame = useCallback(() => {
     setIsGameOver(false);
     setOutcome(null);
@@ -39,9 +51,12 @@ export function useGame() {
   return {
     outcome,
     isGameOver,
+    isReady,
+    isStarted,
     playerHealth,
     enemyHealth,
     attachListeners,
+    startGame,
     restartGame,
   };
 }

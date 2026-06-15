@@ -38,6 +38,58 @@ body {
   image-rendering: crisp-edges;
 }
 
+/* Start Screen Overlay */
+.start-overlay {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.start-title {
+  color: #ffffff;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: clamp(2rem, 6vw, 5rem);
+  font-weight: 900;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  text-shadow: 0 0 30px rgba(65, 105, 225, 0.8);
+  margin-bottom: 2.5rem;
+}
+
+.start-btn {
+  background: transparent;
+  border: 3px solid #ffffff;
+  color: #ffffff;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: clamp(0.9rem, 2vw, 1.3rem);
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  padding: 0.75rem 2.5rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  image-rendering: pixelated;
+}
+
+.start-btn:hover:not(:disabled) {
+  background: #ffffff;
+  color: #000000;
+}
+
+.start-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.start-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 /* Game Over Overlay */
 .game-over-overlay {
   position: absolute;

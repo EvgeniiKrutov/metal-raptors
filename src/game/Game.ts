@@ -3,6 +3,8 @@ import Phaser from 'phaser';
 export const gameEvents = new Phaser.Events.EventEmitter();
 
 export const EVENTS = {
+  ASSETS_LOADED:         'assetsLoaded',
+  START_GAME:            'startGame',
   GAME_STARTED:          'gameStarted',
   GAME_OVER:             'gameOver',
   RESTART_GAME:          'restartGame',

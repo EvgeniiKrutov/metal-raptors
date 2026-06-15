@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { gameConfig } from '../config/gameConfig';
+import { gameEvents, EVENTS } from '../Game';
 
 export class PreloadScene extends Phaser.Scene {
   constructor() {
@@ -28,7 +29,12 @@ export class PreloadScene extends Phaser.Scene {
     this.makeEnemyTexture();
     this.makeExplosionAnimation();
 
-    this.scene.start('GameScene');
+    // Assets are ready, but hold here until the player presses Start on the
+    // React start screen. Once they do, enter the usual game flow.
+    gameEvents.once(EVENTS.START_GAME, () => {
+      this.scene.start('GameScene');
+    });
+    gameEvents.emit(EVENTS.ASSETS_LOADED);
   }
 
   private makeExplosionAnimation(): void {
