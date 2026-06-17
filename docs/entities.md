@@ -32,6 +32,14 @@ The `smoke.png` texture is ~454x375px, hence the small `scale` (0.1–0.5) on th
 
 `setFrequency()`/`setParticleTint()` reset the emitter's internal flow counter on every call, so `updateSmoke()` caches the last-applied `smokeFrequency`/`smokeTint` and only re-applies them when the value actually changes — calling `setFrequency()` every frame would otherwise perpetually restart the flow countdown and no particle would ever emit.
 
+### Gun traces
+
+Both player and enemy planes call `spawnGunTrace()` at the moment they fire (right after emitting the `'fire'` event), so the muzzle flash appears at the same point the bullet is created.
+
+Each call spawns a fresh `Phaser.GameObjects.Sprite` using a random texture (`machine_gun_trace_1`…`machine_gun_trace_6`, preloaded by `PreloadScene` from `effects/machine_gun_traces/`). The sprite is scaled relative to the plane (`GUN_TRACE_LENGTH_FACTOR = 0.7` of `displayWidth`) so it is always smaller than the plane, and uses origin `(0, 0.5)` so it starts at the muzzle and extends forward along the plane's heading.
+
+The trace is tied to the plane: a fade-out tween (`GUN_TRACE_LIFETIME = 90ms`) repositions it to the current muzzle each frame via `onUpdate`, then destroys it on completion. `hideWreck()` and `destroy()` kill any in-flight tweens and clear remaining traces so nothing is left floating when a plane dies or the scene shuts down.
+
 ---
 
 ## PlayerPlane

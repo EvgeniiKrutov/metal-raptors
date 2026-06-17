@@ -49,6 +49,16 @@ export function backgroundLayerKeys(set: string, variant: string) {
   };
 }
 
+export const GUN_TRACE_COUNT = 6;
+
+export function gunTraceKey(index: number): string {
+  return `machine_gun_trace_${index}`;
+}
+
+export function gunTracePath(index: number): string {
+  return `effects/machine_gun_traces/${index}.png`;
+}
+
 /**
  * True on touch-capable devices (phones/tablets). Used to decide whether to
  * show the on-screen joystick + fire button instead of keyboard controls.

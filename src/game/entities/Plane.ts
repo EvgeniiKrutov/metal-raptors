@@ -1,10 +1,15 @@
 import Phaser from 'phaser';
 import { PlaneConfig } from '../../types/game.types';
+import { GUN_TRACE_COUNT, gunTraceKey } from '../utils/helpers';
 
 const SMOKE_HEALTH_THRESHOLD = 0.3;
 
 const CRASH_GRAVITY      = 900;
 const CRASH_INITIAL_FALL = 60;
+
+const GUN_TRACE_LIFETIME      = 90;
+const GUN_TRACE_LENGTH_FACTOR = 0.45;
+const GUN_TRACE_OFFSET_FACTOR = 0.4;
 
 export abstract class Plane extends Phaser.Physics.Arcade.Sprite {
   planeConfig: PlaneConfig;
@@ -23,6 +28,8 @@ export abstract class Plane extends Phaser.Physics.Arcade.Sprite {
   private smokeEmitter?: Phaser.GameObjects.Particles.ParticleEmitter;
   private smokeFrequency = -1;
   private smokeTint = -1;
+
+  private gunTraces: Phaser.GameObjects.Sprite[] = [];
 
   constructor(
     scene: Phaser.Scene,
@@ -101,6 +108,49 @@ export abstract class Plane extends Phaser.Physics.Arcade.Sprite {
     }
   }
 
+  protected spawnGunTrace(): void {
+    const key   = gunTraceKey(Phaser.Math.Between(1, GUN_TRACE_COUNT));
+    const trace = this.scene.add.sprite(0, 0, key);
+
+    trace.setOrigin(0, 0.5);
+    trace.setDepth(this.depth + 1);
+    trace.setScale((this.displayWidth * GUN_TRACE_LENGTH_FACTOR) / trace.width);
+
+    this.positionGunTrace(trace);
+    this.gunTraces.push(trace);
+
+    this.scene.tweens.add({
+      targets: trace,
+      alpha: { from: 1, to: 0 },
+      duration: GUN_TRACE_LIFETIME,
+      onUpdate: () => this.positionGunTrace(trace),
+      onComplete: () => this.removeGunTrace(trace),
+    });
+  }
+
+  private positionGunTrace(trace: Phaser.GameObjects.Sprite): void {
+    const offset = this.displayWidth * GUN_TRACE_OFFSET_FACTOR;
+    trace.setPosition(
+      this.x + Math.cos(this.rotation) * offset,
+      this.y + Math.sin(this.rotation) * offset,
+    );
+    trace.setRotation(this.rotation);
+  }
+
+  private removeGunTrace(trace: Phaser.GameObjects.Sprite): void {
+    const idx = this.gunTraces.indexOf(trace);
+    if (idx >= 0) this.gunTraces.splice(idx, 1);
+    trace.destroy();
+  }
+
+  private clearGunTraces(): void {
+    for (const trace of this.gunTraces) {
+      this.scene.tweens.killTweensOf(trace);
+      trace.destroy();
+    }
+    this.gunTraces.length = 0;
+  }
+
   startCrash(): void {
     if (this.isCrashing) return;
     this.isCrashing = true;
@@ -138,6 +188,7 @@ export abstract class Plane extends Phaser.Physics.Arcade.Sprite {
   hideWreck(): void {
     this.setVisible(false);
     this.smokeEmitter?.stop();
+    this.clearGunTraces();
 
     const body = this.body as Phaser.Physics.Arcade.Body | undefined;
     if (body) body.enable = false;
@@ -146,6 +197,7 @@ export abstract class Plane extends Phaser.Physics.Arcade.Sprite {
   destroy(fromScene?: boolean): void {
     this.smokeEmitter?.destroy();
     this.smokeEmitter = undefined;
+    this.clearGunTraces();
     super.destroy(fromScene);
   }
 

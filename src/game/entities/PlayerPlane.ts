@@ -51,6 +51,7 @@ export class PlayerPlane extends Plane {
       const bx = this.x + Math.cos(angle) * halfLen;
       const by = this.y + Math.sin(angle) * halfLen;
       this.emit('fire', bx, by, angle);
+      this.spawnGunTrace();
     }
   }
 

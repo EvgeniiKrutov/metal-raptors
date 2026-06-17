@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { gameEvents, EVENTS } from '../Game';
+import { GUN_TRACE_COUNT, gunTraceKey, gunTracePath } from '../utils/helpers';
 
 export class PreloadScene extends Phaser.Scene {
   constructor() {
@@ -32,6 +33,13 @@ export class PreloadScene extends Phaser.Scene {
     }
     if (!this.cache.audio.exists('bullet_shot')) {
       this.load.audio('bullet_shot', 'sounds/bullet_shot_1.wav');
+    }
+
+    for (let i = 1; i <= GUN_TRACE_COUNT; i++) {
+      const key = gunTraceKey(i);
+      if (!this.textures.exists(key)) {
+        this.load.image(key, gunTracePath(i));
+      }
     }
   }
 
