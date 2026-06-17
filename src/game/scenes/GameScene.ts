@@ -188,6 +188,9 @@ export class GameScene extends Phaser.Scene {
     this.player.handleInput(inputState, delta);
     this.player.updatePhysics(delta);
 
+    this.registry.set('playerSpeed', this.player.currentSpeed);
+    this.registry.set('playerAltitude', Math.max(0, groundY - this.player.y));
+
     this.levelManager.update(delta);
     if (this.isGameOver) return;
 

@@ -23,6 +23,7 @@ then acts as the **idle hub** the game returns to between sorties.
 | `enemy_temp` | `sprites/planes/world_war_1/Fokker_Dr_1.png` |
 | `smoke` | `effects/smoke.png` |
 | `bullet` | `effects/bullet.png` |
+| `speedometer` | `interface/speedometer.png` |
 | `explosion` | `effects/explosion.png` (spritesheet) |
 | `bullet_shot` | `sounds/bullet_shot_1.wav` |
 
@@ -96,7 +97,7 @@ Each frame (when not game over):
 5. **Ground collision** — player Y ≥ `groundY` triggers DEFEAT; each enemy that reaches `groundY` is counted as destroyed (explode + remove)
 6. **Bullet culling** — bullets outside the camera view + margin (64 px) are deactivated; enemy bullets also die on hitting the ground
 7. **Combat** — `checkBulletEnemiesCollision` returns per-enemy hits; survivors get `onDamaged`, killed enemies are exploded and removed; enemy-bullet→player hits update health and may trigger DEFEAT
-8. **Registry update** — the live enemies are written as an array of `{ screenX, screenY, percent }` descriptors plus a `stageInfo` object for `UIScene`
+8. **Registry update** — the live enemies are written as an array of `{ screenX, screenY, percent }` descriptors plus a `stageInfo` object for `UIScene`; the player's `currentSpeed` (`playerSpeed`) and altitude above the ground (`playerAltitude` = `groundY − player.y`, floored at 0) are also written for the HUD readout
 9. **Parallax update**
 
 Individual enemy death is *never* an immediate VICTORY — only the `LevelManager`'s last-stage-cleared signal is.
@@ -137,8 +138,9 @@ A parallel scene rendered on top of `GameScene`. Draws health bars each frame us
 
 ### Player Health Bar
 
-Fixed to the top-left corner:
-- Position: (60, 20), size: 220 × 22
+Fixed to the top-left, just **right of the two instrument gauges** (so the gauges
+own the corner for now):
+- Position: `(HP_BAR_X, HP_BAR_Y)`, size: 220 × 22, vertically centred on the gauges
 - Colour: `healthColour(percent)` — green above 60%, yellow above 30%, red below
 
 ### Enemy Health Bars
@@ -148,6 +150,23 @@ descriptor per live enemy, rewritten by `GameScene` every frame so dead enemies'
 bars disappear). One crimson (`0xdc143c`) bar, 120 px wide, is drawn 44 px above
 each enemy; a bar is skipped when its enemy is more than 200 px off-screen
 horizontally.
+
+### Altitude / Speed Gauges
+
+Two instrument gauges sit side by side in the **top-left corner**, each drawn
+from the `speedometer` interface texture (scaled to `GAUGE_WIDTH × GAUGE_HEIGHT`
+via `setDisplaySize`). The readout values are printed **inside** each gauge's
+display panel, centred on the frame:
+
+- **Speed** (left gauge) shows `<n>km/h` from `playerSpeed`.
+- **Altitude** (right gauge) shows `<n>m` from `playerAltitude`.
+
+Both values come from the registry (written by `GameScene`) and are rounded to
+whole integers with `Math.round`, so no fractional values are ever shown. The
+text uses the pixel-art font **Press Start 2P** (loaded from Google Fonts in
+`index.html`, with a `monospace` fallback) in amber `#fddb7f`. Because `update()`
+re-`setText`s every frame, the readout re-renders with the web font automatically
+once it finishes loading.
 
 ### Stage Indicator
 

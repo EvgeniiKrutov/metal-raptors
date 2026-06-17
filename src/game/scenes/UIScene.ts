@@ -6,6 +6,23 @@ import { ControlState } from '../../types/game.types';
 
 const CONTROLS_ALPHA = 0.4;
 
+const GAUGE_WIDTH = 220;
+const GAUGE_HEIGHT = 195;
+const GAUGE_MARGIN = 16;
+const GAUGE_GAP = 8;
+const GAUGE_FONT = '"Press Start 2P", monospace';
+const GAUGE_TEXT_COLOUR = '#fddb7f';
+
+const SPD_GAUGE_X = GAUGE_MARGIN;
+const ALT_GAUGE_X = GAUGE_MARGIN + GAUGE_WIDTH + GAUGE_GAP;
+const GAUGE_Y = GAUGE_MARGIN;
+const GAUGE_CENTRE_Y = GAUGE_Y + GAUGE_HEIGHT / 2;
+
+const HP_BAR_X = ALT_GAUGE_X + GAUGE_WIDTH + GAUGE_MARGIN;
+const HP_BAR_WIDTH = 220;
+const HP_BAR_HEIGHT = 22;
+const HP_BAR_Y = Math.round(GAUGE_CENTRE_Y - HP_BAR_HEIGHT / 2);
+
 interface EnemyBarDescriptor {
   screenX: number;
   screenY: number;
@@ -27,6 +44,8 @@ export class UIScene extends Phaser.Scene {
   private enemyBar!:  Phaser.GameObjects.Graphics;
   private controlsText!: Phaser.GameObjects.Text;
   private stageText!: Phaser.GameObjects.Text;
+  private altitudeText!: Phaser.GameObjects.Text;
+  private speedText!: Phaser.GameObjects.Text;
 
   private useTouchControls = false;
   private joystick?: VirtualJoyStick;
@@ -68,11 +87,33 @@ export class UIScene extends Phaser.Scene {
       },
     ).setOrigin(0.5, 0.5).setAlpha(0.45);
 
-    this.add.text(20, 58, 'SPD', {
-      fontFamily: 'Courier New',
-      fontSize: '12px',
-      color: '#aaaaaa',
-    });
+    this.add.image(ALT_GAUGE_X, GAUGE_Y, 'speedometer')
+      .setOrigin(0, 0)
+      .setDisplaySize(GAUGE_WIDTH, GAUGE_HEIGHT);
+
+    this.add.image(SPD_GAUGE_X, GAUGE_Y, 'speedometer')
+      .setOrigin(0, 0)
+      .setDisplaySize(GAUGE_WIDTH, GAUGE_HEIGHT);
+
+    const gaugeTextStyle = {
+      fontFamily: GAUGE_FONT,
+      fontSize: '14px',
+      color: GAUGE_TEXT_COLOUR,
+    };
+
+    this.altitudeText = this.add.text(
+      ALT_GAUGE_X + GAUGE_WIDTH / 2,
+      GAUGE_CENTRE_Y,
+      '',
+      gaugeTextStyle,
+    ).setOrigin(0.5);
+
+    this.speedText = this.add.text(
+      SPD_GAUGE_X + GAUGE_WIDTH / 2,
+      GAUGE_CENTRE_Y,
+      '',
+      gaugeTextStyle,
+    ).setOrigin(0.5);
 
     if (this.useTouchControls) {
       this.createTouchControls();
@@ -154,11 +195,10 @@ export class UIScene extends Phaser.Scene {
 
     this.playerBar.clear();
 
-    this.drawLabel(this.playerBar, 20, 22, 'HP');
     this.drawHealthBar(
       this.playerBar,
-      60, 20,
-      220, 22,
+      HP_BAR_X, HP_BAR_Y,
+      HP_BAR_WIDTH, HP_BAR_HEIGHT,
       pH / pMax,
       healthColour(pH / pMax),
     );
@@ -180,6 +220,11 @@ export class UIScene extends Phaser.Scene {
         0xdc143c,
       );
     }
+
+    const altitude = Math.round((this.registry.get('playerAltitude') as number) ?? 0);
+    const speed    = Math.round((this.registry.get('playerSpeed')    as number) ?? 0);
+    this.altitudeText.setText(`${altitude}m`);
+    this.speedText.setText(`${speed}km/h`);
 
     const stage = this.registry.get('stageInfo') as StageInfo | undefined;
     if (stage) {
@@ -211,13 +256,5 @@ export class UIScene extends Phaser.Scene {
 
     gfx.lineStyle(2, 0xffffff, 0.8);
     gfx.strokeRect(x, y, width, height);
-  }
-
-  private drawLabel(
-    gfx: Phaser.GameObjects.Graphics,
-    x: number, y: number,
-    text: string,
-  ): void {
-    void gfx; void x; void y; void text;
   }
 }
