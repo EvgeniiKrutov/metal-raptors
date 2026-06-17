@@ -16,6 +16,7 @@ import { getLevelById, getLevels } from '../config/data/levels/index';
 import { UIScene } from './UIScene';
 
 const EXPLOSION_FRAME_WIDTH = 186;
+const GROUND_EXPLOSION_Y_OFFSET = 30;
 
 export class GameScene extends Phaser.Scene {
   player!: PlayerPlane;
@@ -388,9 +389,9 @@ export class GameScene extends Phaser.Scene {
 
   private createGroundVisual(groundKey: string): void {
     const { world } = gameConfig;
-    const groundY = world.height - 80;
+    const groundY = world.height - 45;
 
-    this.add.tileSprite(0, groundY, world.width, 200, groundKey)
+    this.add.tileSprite(0, groundY, world.width, 50, groundKey)
       .setOrigin(0, 0)
       .setDepth(-50);
   }
@@ -423,7 +424,7 @@ export class GameScene extends Phaser.Scene {
     switch (cause) {
       case 'ground': {
         const groundY = gameConfig.world.height - 80;
-        this.spawnExplosion(plane.x, groundY, plane.displayWidth, 1, true);
+        this.spawnExplosion(plane.x, groundY + GROUND_EXPLOSION_Y_OFFSET, plane.displayWidth, 1, true);
         plane.hideWreck();
         break;
       }
@@ -446,7 +447,7 @@ export class GameScene extends Phaser.Scene {
     this.parallaxSystem.update(this.cameras.main, plane.y);
 
     if (reachedGround) {
-      this.spawnExplosion(plane.x, groundY, plane.displayWidth, 1, true);
+      this.spawnExplosion(plane.x, groundY + GROUND_EXPLOSION_Y_OFFSET, plane.displayWidth, 1, true);
       plane.hideWreck();
       this.crashingPlane = null;
     }
