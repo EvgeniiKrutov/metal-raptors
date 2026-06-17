@@ -160,10 +160,16 @@ level supplies its own artwork rather than the layers being hardcoded.
 
 | Layer | Texture | Depth | Scroll |
 |---|---|---|---|
-| background | `bgKey` (sky) | -100 | Fixed (scroll factor 0) |
-| foreground | `fgKey` (ground) | -90 | Fixed (scroll factor 0) |
+| background | `bgKey` (sky) | -100 | Screen-fixed (pinned to the camera view) |
+| foreground | `fgKey` (ground) | -90 | Screen-fixed (pinned to the camera view) |
 
-Both layers are fixed to the screen (`setScrollFactor(0)`) — they do not move as the camera scrolls horizontally.
+Both layers stay fixed on screen — they do not move as the camera scrolls
+horizontally. Rather than `setScrollFactor(0)` (which is mis-scaled under the
+screen-height-driven camera zoom), each layer is **anchored to the camera's
+visible world rectangle** (`camera.worldView`) every frame and sized to cover it
+(`layerWidth = (screenWidth / screenHeight) × 1080 + overscan`, recomputed on
+`resize`). This fills any aspect ratio — desktop or phone — with no gaps. See
+[display-and-responsiveness.md](display-and-responsiveness.md).
 
 ### Altitude Effect (`update`)
 
@@ -172,11 +178,10 @@ The foreground layer fades in and slides up as the player descends. The effect i
 ```
 t = clamp((playerY − playerMinY) / (playerMaxY − playerMinY), 0, 1)
 alpha = clamp((t + fgThreshold) / (1 + fgThreshold), 0, 1)
-fg.alpha = alpha
-fg.y = lerp(display.height, fgOffset, alpha)
+fg.y = view.y + lerp(1080, fgOffset, alpha)
 ```
 
 - At the top of the world (`playerMinY = 20`): `alpha ≈ 0`, foreground invisible
-- Near the ground (`playerMaxY = worldHeight − 80`): `alpha → 1`, foreground fully visible and slid up to `fgOffset = −80`
+- Near the ground (`playerMaxY = worldHeight − 80`): `alpha → 1`, foreground fully visible and slid up to `fgOffset = −30`
 
 `fgThreshold = 0.5` means the foreground starts fading in when the player is halfway to the ground.

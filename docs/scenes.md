@@ -51,7 +51,7 @@ like the first.
 
 ### Loading UI
 
-A progress bar and title text are shown during asset loading. The bar width tracks the `progress` event; the loading text updates per-file via the `fileprogress` event.
+A progress bar and title text are shown during asset loading. The bar width tracks the `progress` event; the loading text updates per-file via the `fileprogress` event. The loader is centred on the **live screen size** and recentres on `resize`, so it stays centred on phones as well as desktop (see [display-and-responsiveness.md](display-and-responsiveness.md)).
 
 ---
 
@@ -77,7 +77,7 @@ namespaced keys (`bg_<set>_<variant>`, …), guarded by `textures.exists`. See
 3. Ground visual: a tile sprite at `worldHeight − 80` using the level's ground key
 4. Bullet pools created: player bullets (max 120) and enemy bullets (max 120)
 5. `PlayerPlane` spawned at 20% × 10% of world size and registered with the `InterpolationSystem`
-6. Camera follows the player with configurable lerp (round-pixels disabled); bounds set to the full world
+6. Camera follows the player with configurable lerp (round-pixels disabled); bounds set to the full world. Zoom is derived from the screen height for a **consistent vertical view** (`zoom = screenHeight / display.height`) and is recomputed on every Scale Manager `resize`; see [display-and-responsiveness.md](display-and-responsiveness.md)
 7. WASD + F keys registered; `CombatSystem` initialised
 8. Player health + an empty `enemies` array written to the registry
 9. `LevelManager` constructed (with `onStageChanged` / `onLevelCompleted` callbacks) and `start()`ed — it drives all enemy spawning
@@ -135,6 +135,8 @@ which fires regardless of scene state.
 `src/game/scenes/UIScene.ts`
 
 A parallel scene rendered on top of `GameScene`. Draws health bars each frame using `Phaser.GameObjects.Graphics`.
+
+All HUD elements are laid out from the **live screen size** and re-flow on every Scale Manager `resize`: sizes/fonts scale by `uiScale = screenHeight / 1080` and elements anchor to the live screen edges (gauges + player bar top-left, stage indicator top-right, controls hint bottom-centre, touch controls in the bottom corners). See [display-and-responsiveness.md](display-and-responsiveness.md).
 
 ### Player Health Bar
 

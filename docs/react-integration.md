@@ -9,6 +9,7 @@ React wraps the Phaser canvas and provides:
 - The `StartScreen` level selector
 - The `GameOverScreen` overlay
 - The `PauseScreen` overlay
+- The `OrientationGate` rotate-to-landscape overlay (touch devices)
 - The `useGame` hook that bridges Phaser events to React state
 
 ---
@@ -17,14 +18,18 @@ React wraps the Phaser canvas and provides:
 
 ### `App` (`src/components/App.tsx`)
 
-Root component. Composes `GameContainer`, `HUD`, `StartScreen`, `PauseScreen`, and
-`GameOverScreen`. The selector is shown while `!isStarted`; the pause overlay while
-`isStarted && isPaused && !isGameOver`; the game-over overlay while `isGameOver`.
-Passes `useGame` state and handlers down as props.
+Root component. Composes `GameContainer`, `HUD`, `StartScreen`, `PauseScreen`,
+`GameOverScreen`, and `OrientationGate`. The selector is shown while `!isStarted`;
+the pause overlay while `isStarted && isPaused && !isGameOver`; the game-over
+overlay while `isGameOver`. Passes `useGame` state and handlers down as props.
 
 ### `GameContainer` (`src/components/GameContainer.tsx`)
 
-Mounts a `<div>` that Phaser attaches its canvas to. Creates the `Phaser.Game` instance on mount and destroys it on unmount. Calls `attachListeners()` once after the game is created so the `useGame` hook can start receiving events.
+Mounts a `<div>` that Phaser attaches its canvas to. Creates the `Phaser.Game` instance on mount and destroys it on unmount. Calls `attachListeners()` once after the game is created so the `useGame` hook can start receiving events. The game uses `Phaser.Scale.RESIZE` so the canvas always fills the screen with no letterbox bars; see [display-and-responsiveness.md](display-and-responsiveness.md).
+
+### `OrientationGate` (`src/components/OrientationGate.tsx`)
+
+On touch devices, best-effort locks the screen to landscape and shows a full-screen "rotate your device" overlay while held in portrait. No-op on non-touch devices. See [display-and-responsiveness.md](display-and-responsiveness.md).
 
 ### `HUD` (`src/components/HUD.tsx`)
 

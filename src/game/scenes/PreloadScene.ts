@@ -1,5 +1,4 @@
 import Phaser from 'phaser';
-import { gameConfig } from '../config/gameConfig';
 import { gameEvents, EVENTS } from '../Game';
 
 export class PreloadScene extends Phaser.Scene {
@@ -93,20 +92,15 @@ export class PreloadScene extends Phaser.Scene {
   }
 
   private createLoadingUI(): void {
-    const { width, height } = gameConfig.display;
-    const cx = width / 2;
-    const cy = height / 2;
-
-    const bgRect = this.add.rectangle(cx, cy, width, height, 0x000000);
-    bgRect.setDepth(0);
-
     const barW = 400, barH = 24;
-    this.add.rectangle(cx, cy, barW + 4, barH + 4, 0x333333).setDepth(1);
-    const bar  = this.add.rectangle(cx - barW / 2, cy, 0, barH, 0x4169e1)
-      .setOrigin(0, 0.5)
-      .setDepth(2);
 
-    this.add.text(cx, cy - 60, 'METAL RAPTORS', {
+    const bgRect = this.add.rectangle(0, 0, 10, 10, 0x000000).setOrigin(0.5).setDepth(0);
+    const barBack = this.add.rectangle(0, 0, barW + 4, barH + 4, 0x333333)
+      .setOrigin(0.5).setDepth(1);
+    const bar = this.add.rectangle(0, 0, 0, barH, 0x4169e1)
+      .setOrigin(0, 0.5).setDepth(2);
+
+    const title = this.add.text(0, 0, 'METAL RAPTORS', {
       fontFamily: 'Courier New',
       fontSize: '36px',
       color: '#ffffff',
@@ -114,13 +108,33 @@ export class PreloadScene extends Phaser.Scene {
       strokeThickness: 4,
     }).setOrigin(0.5).setDepth(2);
 
-    const loadingText = this.add.text(cx, cy + 40, 'LOADING...', {
+    const loadingText = this.add.text(0, 0, 'LOADING...', {
       fontFamily: 'Courier New',
       fontSize: '14px',
       color: '#aaaaaa',
     }).setOrigin(0.5).setDepth(2);
 
+    let progress = 0;
+
+    const layout = () => {
+      const w = this.scale.width;
+      const h = this.scale.height;
+      const cx = w / 2;
+      const cy = h / 2;
+      bgRect.setPosition(cx, cy).setSize(w, h);
+      barBack.setPosition(cx, cy);
+      bar.setPosition(cx - barW / 2, cy);
+      bar.width = barW * progress;
+      title.setPosition(cx, cy - 60);
+      loadingText.setPosition(cx, cy + 40);
+    };
+
+    layout();
+    this.scale.on('resize', layout, this);
+    this.events.once('shutdown', () => this.scale.off('resize', layout, this));
+
     this.load.on('progress', (value: number) => {
+      progress = value;
       bar.width = barW * value;
     });
 

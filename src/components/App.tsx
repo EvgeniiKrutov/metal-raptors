@@ -3,6 +3,7 @@ import GameContainer from './GameContainer';
 import GameOverScreen from './GameOverScreen';
 import PauseScreen from './PauseScreen';
 import StartScreen from './StartScreen';
+import OrientationGate from './OrientationGate';
 import HUD from './HUD';
 import { useGame } from '../hooks/useGame';
 
@@ -50,6 +51,8 @@ const App: React.FC = () => {
           onExitToMenu={exitToMenu}
         />
       )}
+
+      <OrientationGate />
     </div>
   );
 };

@@ -119,6 +119,9 @@ export class GameScene extends Phaser.Scene {
       camera.lerp,
     );
 
+    this.applyCameraZoom();
+    this.scale.on('resize', this.handleResize, this);
+
     const kb = this.input.keyboard!;
     this.keys = {
       W: kb.addKey(Phaser.Input.Keyboard.KeyCodes.W),
@@ -166,6 +169,7 @@ export class GameScene extends Phaser.Scene {
       gameEvents.off(EVENTS.RESTART_GAME, this.handleRestart, this);
       gameEvents.off(EVENTS.EXIT_TO_MENU, this.handleExit, this);
       gameEvents.off(EVENTS.RESUME_GAME, this.handleResume, this);
+      this.scale.off('resize', this.handleResize, this);
     });
 
     gameEvents.emit(EVENTS.GAME_STARTED);
@@ -316,12 +320,23 @@ export class GameScene extends Phaser.Scene {
     };
   }
 
+  private applyCameraZoom(): void {
+    const referenceViewHeight = gameConfig.display.height;
+    this.cameras.main.setZoom(this.scale.height / referenceViewHeight);
+  }
+
+  private handleResize(gameSize: Phaser.Structs.Size): void {
+    this.cameras.resize(gameSize.width, gameSize.height);
+    this.applyCameraZoom();
+  }
+
   private writeEnemyRegistry(cam: Phaser.Cameras.Scene2D.Camera): void {
+    const view = cam.worldView;
     const descriptors = this.levelManager.getActiveEnemies()
       .filter((enemy) => enemy.isAlive())
       .map((enemy) => ({
-        screenX: enemy.x - cam.scrollX,
-        screenY: enemy.y - cam.scrollY,
+        screenX: ((enemy.x - view.x) / view.width)  * cam.width,
+        screenY: ((enemy.y - view.y) / view.height) * cam.height,
         percent: enemy.getHealthPercent(),
       }));
 

@@ -19,6 +19,8 @@ Phaser (game loop)
 
 Scenes emit events; React components subscribe to them via the `useGame` hook. React triggers game actions (e.g. restart) by emitting events back onto `gameEvents`.
 
+The canvas fills the screen with no letterbox bars and adapts to any device (desktop + mobile) via `Phaser.Scale.RESIZE`, a screen-height-driven camera zoom, an edge-anchored responsive HUD, and a landscape orientation gate — see [display-and-responsiveness.md](display-and-responsiveness.md).
+
 ## Scene Pipeline
 
 ```

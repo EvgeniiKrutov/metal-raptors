@@ -13,7 +13,12 @@ body {
   overflow: hidden;
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   font-family: 'Courier New', Courier, monospace;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 #root {
@@ -31,11 +36,53 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
 }
 
 #phaser-container {
+  width: 100%;
+  height: 100%;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
+}
+
+#phaser-container canvas {
+  display: block;
+  touch-action: none;
+}
+
+/* Rotate-device gate (touch devices in portrait) */
+.rotate-overlay {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  z-index: 200;
+  padding: 2rem;
+  text-align: center;
+}
+
+.rotate-icon {
+  font-size: 3.5rem;
+  animation: rotate-hint 1.8s ease-in-out infinite;
+}
+
+.rotate-text {
+  color: #ffffff;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: clamp(0.9rem, 4vw, 1.3rem);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+@keyframes rotate-hint {
+  0%, 100% { transform: rotate(-90deg); }
+  50%       { transform: rotate(0deg); }
 }
 
 /* Start Screen Overlay */

@@ -1,7 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import Phaser from 'phaser';
 import VirtualJoystickPlugin from 'phaser3-rex-plugins/plugins/virtualjoystick-plugin.js';
-import { gameConfig } from '../game/config/gameConfig';
 import { BootScene }    from '../game/scenes/BootScene';
 import { PreloadScene } from '../game/scenes/PreloadScene';
 import { GameScene }    from '../game/scenes/GameScene';
@@ -27,10 +26,10 @@ const GameContainer: React.FC<Props> = ({ onReady }) => {
         roundPixels: false,
       },
       scale: {
-        mode:          Phaser.Scale.FIT,
+        mode:          Phaser.Scale.RESIZE,
         autoCenter:    Phaser.Scale.CENTER_BOTH,
-        width:         gameConfig.display.width,
-        height:        gameConfig.display.height,
+        width:         window.innerWidth,
+        height:        window.innerHeight,
         parent:        containerRef.current,
       },
       physics: {
