@@ -25,6 +25,7 @@ then acts as the **idle hub** the game returns to between sorties.
 | `bullet` | `effects/bullet.png` |
 | `speedometer` | `interface/speedometer.png` |
 | `explosion` | `effects/explosion.png` (spritesheet) |
+| `explosion_air` | `effects/explosion_air.png` (spritesheet) |
 | `bullet_shot` | `sounds/bullet_shot_1.wav` |
 
 Backgrounds are **not** loaded here — each level loads its own three layers in
@@ -39,7 +40,10 @@ After loading, two plane textures are generated and cached:
 
 **`player` / `enemy`** — Built from the loaded sprites via `RenderTexture`,
 scaled to a base width with aspect ratio preserved. The enemy texture is flipped
-vertically (`setFlipY(true)`). The `explosion` animation is created once.
+vertically (`setFlipY(true)`). The `explosion` and `explosion_air` animations
+are each created once (22 frames at 30 fps, no repeat). `explosion` is the
+ground-impact burst; `explosion_air` is the mid-air burst used when an enemy is
+shot down before reaching the ground.
 
 ### Idle hub / menu re-entry
 
@@ -94,9 +98,9 @@ Each frame (when not game over):
 2. **LevelManager** — `update(delta)` handles spawning, stage advancement, and the last-stage → VICTORY signal; the scene bails immediately if that signal fired
 3. **Enemy AI** — for each live enemy, build a per-enemy `AIContext` and call `updateAI`
 4. **Screen wrap / ceiling** — player wraps left↔right and is clamped to Y ≥ 20
-5. **Ground collision** — player Y ≥ `groundY` triggers DEFEAT; each enemy that reaches `groundY` is counted as destroyed (explode + remove)
+5. **Ground collision** — player Y ≥ `groundY` triggers DEFEAT; each enemy that reaches `groundY` is collected as a ground kill (explode with the `explosion` burst + remove)
 6. **Bullet culling** — bullets outside the camera view + margin (64 px) are deactivated; enemy bullets also die on hitting the ground
-7. **Combat** — `checkBulletEnemiesCollision` returns per-enemy hits; survivors get `onDamaged`, killed enemies are exploded and removed; enemy-bullet→player hits update health and may trigger DEFEAT
+7. **Combat** — `checkBulletEnemiesCollision` returns per-enemy hits; survivors get `onDamaged`, killed enemies are collected as air kills (unless they already reached the ground this frame) and exploded with the `explosion_air` burst, then removed; enemy-bullet→player hits update health and may trigger DEFEAT
 8. **Registry update** — the live enemies are written as an array of `{ screenX, screenY, percent }` descriptors plus a `stageInfo` object for `UIScene`; the player's `currentSpeed` (`playerSpeed`) and altitude above the ground (`playerAltitude` = `groundY − player.y`, floored at 0) are also written for the HUD readout
 9. **Parallax update**
 
@@ -106,7 +110,7 @@ Individual enemy death is *never* an immediate VICTORY — only the `LevelManage
 
 - `triggerVictory()` — set after the last stage clears; an 800 ms delay lets the final explosion play, then the scene pauses and emits `GAME_OVER { outcome: 'VICTORY', levelId }`.
 - `triggerDefeat(plane, cause)` — clears the enemy registry (so `UIScene` stops drawing enemy health bars for the rest of the defeat sequence), then `'ground'` explodes the player immediately, `'fall'` (health 0) plays the crash; on the explosion's animation-complete the scene pauses and emits `GAME_OVER { outcome: 'DEFEAT', levelId }`.
-- `explodeEnemy(enemy)` — cosmetic per-enemy explosion (no game over): spawn the sprite, `hideWreck`, and `LevelManager.removeEnemy`.
+- `explodeEnemy(enemy, inAir)` — cosmetic per-enemy explosion (no game over): spawn the sprite (`explosion_air` when `inAir`, otherwise the ground `explosion`), `hideWreck`, and `LevelManager.removeEnemy`. Both bursts share the same on-screen size via `spawnExplosion`'s scaling.
 
 The flag `isGameOver` prevents re-entry. `handleRestart({ levelId })` restarts the
 scene with the stored level; `handleExit()` stops `UIScene` and returns to

@@ -216,13 +216,14 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    const destroyed = new Set<EnemyPlane>();
+    const groundDestroyed = new Set<EnemyPlane>();
+    const airDestroyed = new Set<EnemyPlane>();
 
     for (const enemy of enemies) {
       if (!enemy.isAlive()) continue;
       if (enemy.y >= groundY) {
         enemy.takeDamage(enemy.currentHealth);
-        destroyed.add(enemy);
+        groundDestroyed.add(enemy);
       }
     }
 
@@ -253,14 +254,17 @@ export class GameScene extends Phaser.Scene {
     const hits = this.combatSystem.checkBulletEnemiesCollision(this.bullets, enemies);
     for (const hit of hits) {
       if (hit.killed) {
-        destroyed.add(hit.enemy);
+        if (!groundDestroyed.has(hit.enemy)) airDestroyed.add(hit.enemy);
       } else {
         hit.enemy.onDamaged(this.buildAIContext(hit.enemy));
       }
     }
 
-    for (const enemy of destroyed) {
-      this.explodeEnemy(enemy);
+    for (const enemy of groundDestroyed) {
+      this.explodeEnemy(enemy, false);
+    }
+    for (const enemy of airDestroyed) {
+      this.explodeEnemy(enemy, true);
     }
 
     const playerHit = this.combatSystem.checkEnemyBulletPlayerCollision(
@@ -348,9 +352,10 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  private explodeEnemy(enemy: EnemyPlane): void {
+  private explodeEnemy(enemy: EnemyPlane, inAir: boolean): void {
     if (!enemy.visible) return;
-    this.spawnExplosion(enemy.x, enemy.y, enemy.displayWidth, 0.5, false);
+    const key = inAir ? 'explosion_air' : 'explosion';
+    this.spawnExplosion(enemy.x, enemy.y, enemy.displayWidth, 0.5, false, key);
     enemy.hideWreck();
     this.levelManager.removeEnemy(enemy);
   }
@@ -477,12 +482,13 @@ export class GameScene extends Phaser.Scene {
     planeSize: number,
     originY: number,
     endsGame: boolean,
+    key: string = 'explosion',
   ): void {
-    const boom = this.add.sprite(x, y, 'explosion', 0);
+    const boom = this.add.sprite(x, y, key, 0);
     boom.setOrigin(0.5, originY);
-    boom.setScale(planeSize / EXPLOSION_FRAME_WIDTH);
+    boom.setScale((planeSize / EXPLOSION_FRAME_WIDTH) * 1.5);
     boom.setDepth(20);
-    boom.play('explosion');
+    boom.play(key);
 
     boom.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
       boom.destroy();

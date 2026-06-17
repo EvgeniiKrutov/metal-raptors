@@ -31,6 +31,12 @@ export class PreloadScene extends Phaser.Scene {
         frameHeight: 196,
       });
     }
+    if (!this.textures.exists('explosion_air')) {
+      this.load.spritesheet('explosion_air', 'effects/explosion_air.png', {
+        frameWidth: 165,
+        frameHeight: 155,
+      });
+    }
     if (!this.cache.audio.exists('bullet_shot')) {
       this.load.audio('bullet_shot', 'sounds/bullet_shot_1.wav');
     }
@@ -55,14 +61,23 @@ export class PreloadScene extends Phaser.Scene {
   }
 
   private makeExplosionAnimation(): void {
-    if (this.anims.exists('explosion')) return;
+    if (!this.anims.exists('explosion')) {
+      this.anims.create({
+        key: 'explosion',
+        frames: this.anims.generateFrameNumbers('explosion', { start: 0, end: 21 }),
+        frameRate: 30,
+        repeat: 0,
+      });
+    }
 
-    this.anims.create({
-      key: 'explosion',
-      frames: this.anims.generateFrameNumbers('explosion', { start: 0, end: 21 }),
-      frameRate: 30,
-      repeat: 0,
-    });
+    if (!this.anims.exists('explosion_air')) {
+      this.anims.create({
+        key: 'explosion_air',
+        frames: this.anims.generateFrameNumbers('explosion_air', { start: 0, end: 21 }),
+        frameRate: 30,
+        repeat: 0,
+      });
+    }
   }
 
   private makePlaneTexture(spriteName: string, planeName: string): void {
