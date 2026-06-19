@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { getLevels } from '../game/config/data/levels/index';
+import { getSelectedPlaneId, setSelectedPlaneId } from '../game/utils/selectedPlane';
+import PlaneSelector from './PlaneSelector';
 
 interface Props {
   ready: boolean;
@@ -9,6 +11,22 @@ interface Props {
 
 const StartScreen: React.FC<Props> = ({ ready, completed, onStart }) => {
   const levels = getLevels();
+
+  const [showSelector, setShowSelector] = useState(false);
+  const [selectedPlaneId, setSelectedPlane] = useState(() => getSelectedPlaneId());
+
+  if (showSelector) {
+    return (
+      <PlaneSelector
+        selectedPlaneId={selectedPlaneId}
+        onSelect={(id) => {
+          setSelectedPlaneId(id);
+          setSelectedPlane(id);
+        }}
+        onBack={() => setShowSelector(false)}
+      />
+    );
+  }
 
   return (
     <div className="start-overlay">
@@ -31,6 +49,14 @@ const StartScreen: React.FC<Props> = ({ ready, completed, onStart }) => {
           );
         })}
       </div>
+
+      <button
+        className="plane-select-entry"
+        onClick={() => setShowSelector(true)}
+        disabled={!ready}
+      >
+        <span className="plane-select-entry-label">Garage</span>
+      </button>
 
       <p className="start-status">{ready ? 'Select a level' : 'Loading…'}</p>
     </div>

@@ -39,7 +39,16 @@ DOM overlay positioned absolutely over the canvas. Currently a version stamp pla
 
 The level selector. Renders one button per level from `getLevels()`, each with a
 ✓ badge when its id is in the persisted `completed` set. Selecting a level calls
-`onStart(levelId)`; buttons are disabled until `ready` (assets loaded).
+`onStart(levelId)`; buttons are disabled until `ready` (assets loaded). Also hosts
+the `plane-select-entry` (Garage) button that opens the `PlaneSelector`.
+
+### `PlaneSelector` (`src/components/PlaneSelector.tsx`)
+
+A self-contained overlay, opened from `StartScreen`, that lets the player pick the
+plane they fly — shown on the main screen only. Previews one plane at a time with
+edge arrows, a Select button (disabled when already equipped), and a reserved panel
+for future characteristics. The choice persists in `localStorage`. See
+[plane-selector.md](plane-selector.md).
 
 ### `GameOverScreen` (`src/components/GameOverScreen.tsx`)
 

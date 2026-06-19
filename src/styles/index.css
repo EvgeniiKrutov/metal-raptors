@@ -208,6 +208,244 @@ body {
   text-transform: uppercase;
 }
 
+/* Plane selector entry button (main menu) */
+.plane-select-entry {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  width: min(440px, 80vw);
+  background: transparent;
+  border: 3px solid rgba(255, 255, 255, 0.6);
+  color: #ffffff;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: clamp(0.85rem, 1.8vw, 1.2rem);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.85rem 1.4rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  text-align: left;
+}
+
+.plane-select-entry:hover:not(:disabled) {
+  background: #ffffff;
+  color: #000000;
+}
+
+.plane-select-entry:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.plane-select-entry:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.plane-select-entry-label {
+  flex: 0 0 auto;
+  color: #ffffff;
+}
+
+.plane-select-entry:hover:not(:disabled) .plane-select-entry-label {
+  color: #000000;
+}
+
+/* Plane selector overlay */
+.plane-selector {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 2rem;
+}
+
+.plane-selector-back {
+  position: absolute;
+  top: 1.25rem;
+  left: 1.25rem;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  padding: 0.5rem 0.75rem;
+}
+
+.plane-selector-back:hover {
+  color: #ffffff;
+}
+
+.plane-era-select {
+  appearance: none;
+  background: transparent;
+  border: 2px solid #ffffff;
+  border-radius: 6px;
+  color: #ffffff;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: clamp(0.85rem, 2.5vw, 1.1rem);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-align: center;
+  padding: 0.6rem 2.5rem;
+  margin-bottom: 1.5rem;
+  cursor: pointer;
+}
+
+.plane-era-select:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.plane-era-select option {
+  background: #000000;
+  color: #ffffff;
+}
+
+.plane-selector-name {
+  color: #ffffff;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: clamp(1.4rem, 4vw, 2.6rem);
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-shadow: 0 0 24px rgba(65, 105, 225, 0.8);
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.plane-selector-body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.plane-selector-stage {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  width: min(820px, 80vw);
+}
+
+.plane-image-frame {
+  flex: 1 1 60%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 220px;
+}
+
+.plane-image {
+  width: 100%;
+  max-width: 460px;
+  max-height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.6));
+}
+
+/* Reserved space for future characteristics UI */
+.plane-stats {
+  flex: 1 1 40%;
+  align-self: stretch;
+  min-height: 220px;
+  border: 2px dashed rgba(255, 255, 255, 0.18);
+  border-radius: 6px;
+}
+
+.plane-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: clamp(48px, 8vw, 72px);
+  height: clamp(48px, 8vw, 72px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 3px solid #ffffff;
+  border-radius: 50%;
+  color: #ffffff;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.plane-arrow-icon {
+  width: 42%;
+  height: 42%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.plane-arrow:hover {
+  background: #ffffff;
+  color: #000000;
+}
+
+.plane-arrow:active {
+  transform: translateY(-50%) scale(0.94);
+}
+
+.plane-arrow:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.plane-arrow:disabled:hover {
+  background: transparent;
+  color: #ffffff;
+}
+
+.plane-arrow-left {
+  left: clamp(0.75rem, 4vw, 3rem);
+}
+
+.plane-arrow-right {
+  right: clamp(0.75rem, 4vw, 3rem);
+}
+
+.plane-select-btn {
+  margin-top: 2.25rem;
+  background: transparent;
+  border: 3px solid #ffffff;
+  color: #ffffff;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: clamp(0.9rem, 2vw, 1.3rem);
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  padding: 0.75rem 3rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.plane-select-btn:hover:not(:disabled) {
+  background: #ffffff;
+  color: #000000;
+}
+
+.plane-select-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.plane-select-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
 /* Game Over Overlay */
 .game-over-overlay {
   position: absolute;

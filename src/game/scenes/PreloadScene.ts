@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
 import { gameEvents, EVENTS } from '../Game';
 import { GUN_TRACE_COUNT, gunTraceKey, gunTracePath } from '../utils/helpers';
+import { getPlanes, planeTextureKey } from '../config/data/planes/index';
+import { getSelectedPlane } from '../utils/selectedPlane';
 
 export class PreloadScene extends Phaser.Scene {
   constructor() {
@@ -10,8 +12,11 @@ export class PreloadScene extends Phaser.Scene {
   preload(): void {
     this.createLoadingUI();
 
-    if (!this.textures.exists('player_temp')) {
-      this.load.image('player_temp', 'sprites/planes/world_war_1/Sopwith_Camel.png');
+    for (const plane of getPlanes()) {
+      const key = planeTextureKey(plane.id);
+      if (!this.textures.exists(key)) {
+        this.load.image(key, plane.file);
+      }
     }
     if (!this.textures.exists('enemy_temp')) {
       this.load.image('enemy_temp', 'sprites/planes/world_war_1/Fokker_Dr_1.png');
@@ -50,11 +55,11 @@ export class PreloadScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.makePlayerTexture();
     this.makeEnemyTexture();
     this.makeExplosionAnimation();
 
     gameEvents.once(EVENTS.START_GAME, ({ levelId }: { levelId: string }) => {
+      this.buildPlayerTexture();
       this.scene.start('GameScene', { levelId });
     });
     gameEvents.emit(EVENTS.ASSETS_LOADED);
@@ -104,9 +109,12 @@ export class PreloadScene extends Phaser.Scene {
     rt.destroy();
   }
 
-  private makePlayerTexture(): void {
-    if (this.textures.exists('player')) return;
-    this.makePlaneTexture('player_temp', 'player');
+  private buildPlayerTexture(): void {
+    if (this.textures.exists('player')) {
+      this.textures.remove('player');
+    }
+    const plane = getSelectedPlane();
+    this.makePlaneTexture(planeTextureKey(plane.id), 'player');
   }
 
   private makeEnemyTexture(): void {
