@@ -446,6 +446,72 @@ body {
   cursor: default;
 }
 
+@media (orientation: landscape) and (max-height: 500px) {
+  .plane-selector {
+    padding: 0.5rem;
+  }
+
+  .plane-selector-back {
+    top: 0.5rem;
+    left: 0.5rem;
+    font-size: 0.8rem;
+    padding: 0.3rem 0.5rem;
+  }
+
+  .plane-era-select {
+    font-size: clamp(0.7rem, 2.5vw, 0.95rem);
+    padding: 0.35rem 1.75rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .plane-selector-name {
+    font-size: clamp(1rem, 4vw, 1.6rem);
+    margin-bottom: 0.5rem;
+    text-shadow: 0 0 16px rgba(65, 105, 225, 0.8);
+  }
+
+  .plane-selector-stage {
+    gap: 1rem;
+    width: min(820px, 80vw);
+  }
+
+  .plane-image-frame {
+    min-height: 0;
+    height: 42vh !important;
+  }
+
+  .plane-image {
+    width: auto;
+    max-width: 100%;
+    max-height: 100%;
+  }
+
+  .plane-stats {
+    min-height: 0;
+  }
+
+  .plane-arrow {
+    width: clamp(36px, 6vw, 48px);
+    height: clamp(36px, 6vw, 48px);
+    border-width: 2px;
+  }
+
+  .plane-arrow-left {
+    left: clamp(0.25rem, 2vw, 1rem);
+  }
+
+  .plane-arrow-right {
+    right: clamp(0.25rem, 2vw, 1rem);
+  }
+
+  .plane-select-btn {
+    margin-top: 0.75rem;
+    font-size: clamp(0.75rem, 2vw, 1rem);
+    padding: 0.45rem 2rem;
+    border-width: 2px;
+  }
+}
+
 /* Game Over Overlay */
 .game-over-overlay {
   position: absolute;
