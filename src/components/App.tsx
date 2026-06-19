@@ -4,6 +4,7 @@ import GameOverScreen from './GameOverScreen';
 import PauseScreen from './PauseScreen';
 import StartScreen from './StartScreen';
 import OrientationGate from './OrientationGate';
+import LoadingScreen from './LoadingScreen';
 import HUD from './HUD';
 import { useGame } from '../hooks/useGame';
 
@@ -15,6 +16,8 @@ const App: React.FC = () => {
     isReady,
     isStarted,
     completed,
+    gcResolved,
+    gcUserId,
     attachListeners,
     startGame,
     restartGame,
@@ -26,6 +29,8 @@ const App: React.FC = () => {
     attachListeners();
   }, [attachListeners]);
 
+  const isLoading = !isReady || !gcResolved;
+
   return (
     <div className="game-wrapper">
       <GameContainer onReady={handleGameReady} />
@@ -35,7 +40,12 @@ const App: React.FC = () => {
 
       {/* Level selector — shown until the player picks a level */}
       {!isStarted && (
-        <StartScreen ready={isReady} completed={completed} onStart={startGame} />
+        <StartScreen
+          ready={isReady}
+          completed={completed}
+          userId={gcUserId}
+          onStart={startGame}
+        />
       )}
 
       {/* Pause overlay — shown by React so it's always on top */}
@@ -53,6 +63,8 @@ const App: React.FC = () => {
       )}
 
       <OrientationGate />
+
+      {isLoading && <LoadingScreen />}
     </div>
   );
 };

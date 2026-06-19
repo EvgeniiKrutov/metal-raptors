@@ -1,7 +1,8 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { GameOutcome } from '../types/game.types';
 import { gameEvents, EVENTS } from '../game/Game';
 import { getCompleted, markCompleted } from '../game/utils/progress';
+import { authenticateGameCenter } from '../services/gameCenter';
 
 export function useGame() {
   const [outcome, setOutcome] = useState<GameOutcome>(null);
@@ -15,6 +16,21 @@ export function useGame() {
 
   const [selectedLevelId, setSelectedLevelId] = useState<string | null>(null);
   const [completed, setCompleted] = useState<string[]>(() => getCompleted());
+
+  const [gcResolved, setGcResolved] = useState(false);
+  const [gcUserId, setGcUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    authenticateGameCenter().then((res) => {
+      if (cancelled) return;
+      setGcUserId(res.userId);
+      setGcResolved(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const attachListeners = useCallback(() => {
     gameEvents.on(EVENTS.ASSETS_LOADED, () => {
@@ -80,6 +96,8 @@ export function useGame() {
     playerHealth,
     completed,
     selectedLevelId,
+    gcResolved,
+    gcUserId,
     attachListeners,
     startGame,
     restartGame,

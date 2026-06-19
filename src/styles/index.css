@@ -208,6 +208,42 @@ body {
   text-transform: uppercase;
 }
 
+.start-userid {
+  margin-top: 0.5rem;
+  color: rgba(255, 255, 255, 0.45);
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+/* Loading Screen Overlay (combined gate) */
+.loading-overlay {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+}
+
+.loading-status {
+  margin-top: 1.75rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.85rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  animation: loading-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes loading-pulse {
+  0%, 100% { opacity: 0.4; }
+  50%      { opacity: 1; }
+}
+
 /* Plane selector entry button (main menu) */
 .plane-select-entry {
   display: flex;

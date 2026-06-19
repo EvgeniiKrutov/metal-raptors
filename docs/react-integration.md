@@ -10,6 +10,7 @@ React wraps the Phaser canvas and provides:
 - The `GameOverScreen` overlay
 - The `PauseScreen` overlay
 - The `OrientationGate` rotate-to-landscape overlay (touch devices)
+- The `LoadingScreen` combined-gate overlay (Phaser assets + Game Center auth)
 - The `useGame` hook that bridges Phaser events to React state
 
 ---
@@ -19,9 +20,16 @@ React wraps the Phaser canvas and provides:
 ### `App` (`src/components/App.tsx`)
 
 Root component. Composes `GameContainer`, `HUD`, `StartScreen`, `PauseScreen`,
-`GameOverScreen`, and `OrientationGate`. The selector is shown while `!isStarted`;
-the pause overlay while `isStarted && isPaused && !isGameOver`; the game-over
-overlay while `isGameOver`. Passes `useGame` state and handlers down as props.
+`GameOverScreen`, `OrientationGate`, and `LoadingScreen`. The selector is shown
+while `!isStarted`; the pause overlay while `isStarted && isPaused && !isGameOver`;
+the game-over overlay while `isGameOver`. Passes `useGame` state and handlers down
+as props.
+
+**Combined gate.** `App` computes `isLoading = !isReady || !gcResolved` and renders
+`<LoadingScreen />` (on top of everything) until both Phaser assets and Game Center
+auth resolve. `GameContainer` stays mounted underneath so Phaser keeps loading and
+emits `ASSETS_LOADED` as usual. The resolved `gcUserId` is passed to `StartScreen`.
+See [gamecenter.md](gamecenter.md).
 
 ### `GameContainer` (`src/components/GameContainer.tsx`)
 
@@ -30,6 +38,14 @@ Mounts a `<div>` that Phaser attaches its canvas to. Creates the `Phaser.Game` i
 ### `OrientationGate` (`src/components/OrientationGate.tsx`)
 
 On touch devices, best-effort locks the screen to landscape and shows a full-screen "rotate your device" overlay while held in portrait. No-op on non-touch devices. See [display-and-responsiveness.md](display-and-responsiveness.md).
+
+### `LoadingScreen` (`src/components/LoadingScreen.tsx`)
+
+A self-contained full-screen overlay shown while the combined gate is pending
+(`!isReady || !gcResolved`). Presentational only — renders the game title and a
+pulsing status line (`label`, default `"Connecting…"`), styled to match the start
+overlay. Sits above all other overlays (`.loading-overlay`, `z-index: 300`). See
+[gamecenter.md](gamecenter.md).
 
 ### `HUD` (`src/components/HUD.tsx`)
 
@@ -40,7 +56,10 @@ DOM overlay positioned absolutely over the canvas. Currently a version stamp pla
 The level selector. Renders one button per level from `getLevels()`, each with a
 ✓ badge when its id is in the persisted `completed` set. Selecting a level calls
 `onStart(levelId)`; buttons are disabled until `ready` (assets loaded). Also hosts
-the `plane-select-entry` (Garage) button that opens the `PlaneSelector`.
+the `plane-select-entry` (Garage) button that opens the `PlaneSelector`. Renders a
+`Player: <id|none>` line from the `userId` prop (the Game Center `teamPlayerID`,
+or `none`); since the menu only mounts after the combined gate clears, `userId` is
+already final — no flicker. See [gamecenter.md](gamecenter.md).
 
 ### `PlaneSelector` (`src/components/PlaneSelector.tsx`)
 
@@ -86,6 +105,8 @@ Subscribes to `gameEvents` and exposes React-friendly state.
 | `playerHealth` | `{ current, max }` | Updated on `PLAYER_HEALTH_CHANGED` |
 | `completed` | `string[]` | Persisted completed level ids (for ✓ badges) |
 | `selectedLevelId` | `string \| null` | The level currently being played |
+| `gcResolved` | `boolean` | `false` until `authenticateGameCenter()` settles |
+| `gcUserId` | `string \| null` | Game Center `teamPlayerID`, or `null` for no access |
 | `attachListeners` | `() => void` | Call once after Phaser game is created |
 | `startGame` | `(levelId) => void` | Launches a level; emits `START_GAME { levelId }` |
 | `restartGame` | `() => void` | Replays the current level; emits `RESTART_GAME { levelId }` |
@@ -100,6 +121,13 @@ Subscribes to `gameEvents` and exposes React-friendly state.
 | `GAME_OVER` | Sets `outcome` + `isGameOver`; on VICTORY, `markCompleted(levelId)` |
 | `GAME_PAUSED` | Sets `isPaused = true` (shows the pause overlay) |
 | `PLAYER_HEALTH_CHANGED` | Updates `playerHealth` |
+
+### Mount effect (Game Center)
+
+A `useEffect` runs once on mount, calls `authenticateGameCenter()`, and on
+settle sets `gcUserId` to the result's `userId` and `gcResolved = true` (guarded
+by a `cancelled` flag for unmount). This runs in parallel with and independently
+of `isReady` (Phaser assets). See [gamecenter.md](gamecenter.md).
 
 ### Flow handlers
 

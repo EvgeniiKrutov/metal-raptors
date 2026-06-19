@@ -6,6 +6,7 @@
 - **React** — UI shell (HUD overlay, game-over screen)
 - **Vite** — build tool
 - **TypeScript** — throughout
+- **Capacitor 8** — native iOS shell + custom native plugins
 
 ## React + Phaser Integration
 
@@ -20,6 +21,15 @@ Phaser (game loop)
 Scenes emit events; React components subscribe to them via the `useGame` hook. React triggers game actions (e.g. restart) by emitting events back onto `gameEvents`.
 
 The canvas fills the screen with no letterbox bars and adapts to any device (desktop + mobile) via `Phaser.Scale.RESIZE`, a screen-height-driven camera zoom, an edge-anchored responsive HUD, and a landscape orientation gate — see [display-and-responsiveness.md](display-and-responsiveness.md).
+
+## Services Layer & Capacitor-Native Boundary
+
+`src/services/` holds modules that bridge React to platform/native capabilities,
+isolating Capacitor and native plugins from the rest of the app. The first such
+module, `gameCenter.ts`, wraps the custom Swift `GameCenter` Capacitor plugin
+(`ios/App/App/plugins/GameCenter/`) and centralizes the platform guard, dev mock,
+timeout, and result shape. UI code calls `authenticateGameCenter()` and never
+touches Capacitor directly. See [gamecenter.md](gamecenter.md).
 
 ## Scene Pipeline
 
