@@ -149,6 +149,7 @@ body {
   display: flex;
   align-items: center;
   gap: 1rem;
+  min-height: 4.25rem;
   background: transparent;
   border: 3px solid #ffffff;
   color: #ffffff;
@@ -217,42 +218,16 @@ body {
   text-transform: uppercase;
 }
 
-/* Loading Screen Overlay (combined gate) */
-.loading-overlay {
-  position: absolute;
-  inset: 0;
-  background: #000;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  z-index: 300;
-}
-
-.loading-status {
-  margin-top: 1.75rem;
-  color: rgba(255, 255, 255, 0.6);
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 0.85rem;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  animation: loading-pulse 1.2s ease-in-out infinite;
-}
-
-@keyframes loading-pulse {
-  0%, 100% { opacity: 0.4; }
-  50%      { opacity: 1; }
-}
-
 /* Plane selector entry button (main menu) */
 .plane-select-entry {
   display: flex;
   align-items: center;
   gap: 1rem;
+  min-height: 4.25rem;
   margin-top: 1.5rem;
   width: min(440px, 80vw);
   background: transparent;
-  border: 3px solid rgba(255, 255, 255, 0.6);
+  border: 3px solid #ffffff;
   color: #ffffff;
   font-family: 'Courier New', Courier, monospace;
   font-size: clamp(0.85rem, 1.8vw, 1.2rem);
@@ -286,6 +261,84 @@ body {
 
 .plane-select-entry:hover:not(:disabled) .plane-select-entry-label {
   color: #000000;
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .start-overlay {
+    justify-content: safe center;
+    overflow-y: auto;
+    padding: 0.5rem 1rem;
+  }
+
+  .start-title {
+    font-size: clamp(1.2rem, 5vw, 2.2rem);
+    margin-bottom: 0.85rem;
+    text-shadow: 0 0 16px rgba(65, 105, 225, 0.8);
+  }
+
+  .level-list {
+    gap: 0.45rem;
+    width: min(420px, 72vw);
+  }
+
+  .level-btn {
+    min-height: 3rem;
+    font-size: clamp(0.72rem, 1.8vw, 1rem);
+    padding: 0.5rem 1rem;
+    border-width: 2px;
+    gap: 0.7rem;
+  }
+
+  .level-index {
+    width: 1.6rem;
+    height: 1.6rem;
+  }
+
+  .plane-select-entry {
+    min-height: 3rem;
+    margin-top: 0.7rem;
+    width: min(420px, 72vw);
+    font-size: clamp(0.72rem, 1.8vw, 1rem);
+    padding: 0.5rem 1rem;
+    border-width: 2px;
+  }
+
+  .start-status {
+    margin-top: 0.7rem;
+    font-size: 0.72rem;
+  }
+
+  .start-userid {
+    margin-top: 0.35rem;
+    font-size: 0.66rem;
+  }
+}
+
+/* Loading Screen Overlay (combined gate) */
+.loading-overlay {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+}
+
+.loading-status {
+  margin-top: 1.75rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.85rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  animation: loading-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes loading-pulse {
+  0%, 100% { opacity: 0.4; }
+  50%      { opacity: 1; }
 }
 
 /* Plane selector overlay */

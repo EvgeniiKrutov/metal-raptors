@@ -37,7 +37,7 @@ const GameContainer: React.FC<Props> = ({ onReady }) => {
         arcade: {
           gravity: { x: 0, y: 0 },
           fixedStep: true,
-          fps: 90,
+          fps: 60,
           debug: import.meta.env.DEV && false, // set true to see hitboxes
         },
       },
