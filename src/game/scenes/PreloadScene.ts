@@ -1,8 +1,11 @@
 import Phaser from 'phaser';
 import { gameEvents, EVENTS } from '../Game';
-import { GUN_TRACE_COUNT, gunTraceKey, gunTracePath } from '../utils/helpers';
+import { GUN_TRACE_COUNT, gunTraceKey, gunTracePath, isTouchDevice } from '../utils/helpers';
 import { getPlanes, planeTextureKey } from '../config/data/planes/index';
 import { getSelectedPlane } from '../utils/selectedPlane';
+
+const PLANE_BASE_WIDTH = 150;
+const PLANE_MOBILE_SCALE = 1.6;
 
 export class PreloadScene extends Phaser.Scene {
   constructor() {
@@ -86,9 +89,11 @@ export class PreloadScene extends Phaser.Scene {
   }
 
   private makePlaneTexture(spriteName: string, planeName: string): void {
+    this.textures.get(spriteName).setFilter(Phaser.Textures.FilterMode.LINEAR);
+
     const tempSprite = this.add.sprite(0, 0, spriteName);
 
-    const baseWidth = 150;
+    const baseWidth = PLANE_BASE_WIDTH * (isTouchDevice() ? PLANE_MOBILE_SCALE : 1);
     const baseHeight = (baseWidth * tempSprite.height) / tempSprite.width;
 
     const scaleX = baseWidth / tempSprite.width;
@@ -104,6 +109,7 @@ export class PreloadScene extends Phaser.Scene {
     const rt = this.add.renderTexture(0, 0, baseWidth, baseHeight);
     rt.draw(tempSprite, 0, 0);
     rt.saveTexture(planeName);
+    this.textures.get(planeName).setFilter(Phaser.Textures.FilterMode.LINEAR);
 
     tempSprite.destroy();
     rt.destroy();

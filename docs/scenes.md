@@ -39,8 +39,27 @@ key.
 After loading, two plane textures are generated and cached:
 
 **`player` / `enemy`** — Built from the loaded sprites via `RenderTexture`,
-scaled to a base width with aspect ratio preserved. The enemy texture is flipped
-vertically (`setFlipY(true)`). The `explosion` and `explosion_air` animations
+scaled to a base width with aspect ratio preserved. The base width is
+`PLANE_BASE_WIDTH` (150) on desktop and is multiplied by `PLANE_MOBILE_SCALE`
+(1.45) on touch devices (`isTouchDevice()`), so both planes render larger on
+mobile screens. The enemy texture is flipped
+vertically (`setFlipY(true)`).
+
+The game runs with `pixelArt: true`, which forces every texture to be created
+with NEAREST filtering. The plane source sprites are high resolution
+(~870–1024 px wide) and are baked down to ~150–217 px, so NEAREST sampling would
+drop most of the detail and leave jagged edges (most visible on high-DPR mobile
+screens). To preserve detail, `makePlaneTexture` switches the source texture and
+the baked `player` / `enemy` texture to LINEAR filtering via
+`Texture.setFilter(FilterMode.LINEAR)`. This is a per-texture override (it goes
+straight to the GL texture parameters and is not gated by the global `antialias`
+flag), so only the planes are smoothed — every other sprite keeps its pixel-art
+NEAREST look. Texture dimensions and on-screen sizes are unchanged. Note that the
+canvas itself still upscales with `image-rendering: pixelated` on high-DPR
+screens; truly matching desktop sharpness would additionally require rendering at
+`devicePixelRatio`.
+
+The `explosion` and `explosion_air` animations
 are each created once (22 frames at 30 fps, no repeat). `explosion` is the
 ground-impact burst; `explosion_air` is the mid-air burst used when an enemy is
 shot down before reaching the ground.
