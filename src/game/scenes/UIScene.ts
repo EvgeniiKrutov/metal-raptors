@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import VirtualJoyStick from 'phaser3-rex-plugins/plugins/virtualjoystick.js';
 import { gameConfig } from '../config/gameConfig';
+import { gameEvents, EVENTS } from '../Game';
 import { healthColour, isTouchDevice } from '../utils/helpers';
 import { ControlState } from '../../types/game.types';
 
@@ -48,6 +49,12 @@ const ENEMY_BAR_HEIGHT = 14;
 const ENEMY_BAR_OFFSET = 44;
 const ENEMY_BAR_CULL = 200;
 
+const PAUSE_RADIUS = 42;
+const PAUSE_MARGIN = 24;
+const PAUSE_BAR_WIDTH = 9;
+const PAUSE_BAR_HEIGHT = 34;
+const PAUSE_BAR_GAP = 9;
+
 interface EnemyBarDescriptor {
   screenX: number;
   screenY: number;
@@ -82,6 +89,10 @@ export class UIScene extends Phaser.Scene {
   private fireText?: Phaser.GameObjects.Text;
   private fireZone?: Phaser.GameObjects.Zone;
   private fireDown = false;
+
+  private pauseBtn?: Phaser.GameObjects.Arc;
+  private pauseIcon?: Phaser.GameObjects.Graphics;
+  private pauseZone?: Phaser.GameObjects.Zone;
 
   private uiScale = 1;
   private screenW = 0;
@@ -135,6 +146,7 @@ export class UIScene extends Phaser.Scene {
 
     if (this.useTouchControls) {
       this.createTouchControls();
+      this.createPauseButton();
     }
 
     this.layout();
@@ -240,6 +252,18 @@ export class UIScene extends Phaser.Scene {
     this.fireZone.on('pointerout',  () => { this.fireDown = false; });
   }
 
+  private createPauseButton(): void {
+    this.pauseBtn = this.add.circle(0, 0, PAUSE_RADIUS, 0x000000, CONTROLS_ALPHA)
+      .setStrokeStyle(4, 0xffffff, CONTROLS_ALPHA + 0.2);
+
+    this.pauseIcon = this.add.graphics();
+
+    this.pauseZone = this.add.zone(0, 0, PAUSE_RADIUS * 2, PAUSE_RADIUS * 2)
+      .setInteractive({ useHandCursor: true });
+
+    this.pauseZone.on('pointerdown', () => gameEvents.emit(EVENTS.PAUSE_GAME));
+  }
+
   private layout(): void {
     const w = this.scale.width;
     const h = this.scale.height;
@@ -271,9 +295,12 @@ export class UIScene extends Phaser.Scene {
     this.hpBarX = altX + gaugeW + margin;
     this.hpBarY = centreY - this.hpBarH / 2;
 
+    const stageY = this.useTouchControls
+      ? (PAUSE_MARGIN * 2 + PAUSE_RADIUS * 2) * Math.max(s, MIN_CONTROL_SCALE)
+      : STAGE_MARGIN * s;
     this.stageText
       .setFontSize(Math.max(10, Math.round(STAGE_FONT_SIZE * s)))
-      .setPosition(w - STAGE_MARGIN * s, STAGE_MARGIN * s);
+      .setPosition(w - STAGE_MARGIN * s, stageY);
 
     this.controlsText
       .setFontSize(Math.max(9, Math.round(CONTROLS_FONT_SIZE * s)))
@@ -281,6 +308,7 @@ export class UIScene extends Phaser.Scene {
 
     if (this.useTouchControls) {
       this.layoutTouchControls(w, h);
+      this.layoutPauseButton(w);
     }
   }
 
@@ -324,6 +352,27 @@ export class UIScene extends Phaser.Scene {
       ?.setFontSize(Math.max(10, Math.round(FIRE_FONT_SIZE * cs)))
       .setPosition(fbX, fbY);
     this.fireZone?.setPosition(fbX, fbY).setSize(fireRadius * 2, fireRadius * 2, true);
+  }
+
+  private layoutPauseButton(w: number): void {
+    const cs = Math.max(this.uiScale, MIN_CONTROL_SCALE);
+
+    const radius = PAUSE_RADIUS * cs;
+    const margin = PAUSE_MARGIN * cs;
+    const cx = w - margin - radius;
+    const cy = margin + radius;
+
+    this.pauseBtn?.setRadius(radius).setPosition(cx, cy);
+    this.pauseZone?.setPosition(cx, cy).setSize(radius * 2, radius * 2, true);
+
+    const barW = PAUSE_BAR_WIDTH * cs;
+    const barH = PAUSE_BAR_HEIGHT * cs;
+    const gap  = PAUSE_BAR_GAP * cs;
+
+    this.pauseIcon?.clear();
+    this.pauseIcon?.fillStyle(0xffffff, CONTROLS_ALPHA + 0.4);
+    this.pauseIcon?.fillRect(cx - gap / 2 - barW, cy - barH / 2, barW, barH);
+    this.pauseIcon?.fillRect(cx + gap / 2, cy - barH / 2, barW, barH);
   }
 
   isTouchActive(): boolean {

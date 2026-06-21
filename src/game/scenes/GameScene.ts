@@ -164,10 +164,12 @@ export class GameScene extends Phaser.Scene {
 
     gameEvents.once(EVENTS.RESTART_GAME, this.handleRestart, this);
     gameEvents.once(EVENTS.EXIT_TO_MENU, this.handleExit, this);
+    gameEvents.on(EVENTS.PAUSE_GAME, this.handlePause, this);
     gameEvents.on(EVENTS.RESUME_GAME, this.handleResume, this);
     this.events.once('shutdown', () => {
       gameEvents.off(EVENTS.RESTART_GAME, this.handleRestart, this);
       gameEvents.off(EVENTS.EXIT_TO_MENU, this.handleExit, this);
+      gameEvents.off(EVENTS.PAUSE_GAME, this.handlePause, this);
       gameEvents.off(EVENTS.RESUME_GAME, this.handleResume, this);
       this.scale.off('resize', this.handleResize, this);
     });

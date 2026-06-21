@@ -7,6 +7,7 @@ export const EVENTS = {
   START_GAME:            'startGame',
   GAME_STARTED:          'gameStarted',
   GAME_OVER:             'gameOver',
+  PAUSE_GAME:            'pauseGame',
   GAME_PAUSED:           'gamePaused',
   RESUME_GAME:           'resumeGame',
   RESTART_GAME:          'restartGame',
