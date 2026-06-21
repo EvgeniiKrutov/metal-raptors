@@ -28,9 +28,19 @@ const CONTROLS_MARGIN = 24;
 const JOY_BASE_RADIUS = 110;
 const JOY_THUMB_RADIUS = 55;
 const JOY_OFFSET = 180;
-const FIRE_RADIUS = 90;
-const FIRE_OFFSET = 180;
-const FIRE_FONT_SIZE = 28;
+const JOY_SUPERSAMPLE = 4;
+const JOY_BASE_FILL_ALPHA = 0.5;
+const JOY_THUMB_FILL_ALPHA = 0.72;
+const JOY_RING_ALPHA = 0.9;
+const JOY_BASE_RING_WIDTH = 4;
+const JOY_THUMB_RING_WIDTH = 3;
+const JOY_THUMB_TINT = 0xdddddd;
+const JOY_DEADZONE = 0.12;
+const JOY_BASE_TEXTURE = 'joystickBase';
+const JOY_THUMB_TEXTURE = 'joystickThumb';
+const FIRE_RADIUS = 60;
+const FIRE_OFFSET = 150;
+const FIRE_FONT_SIZE = 20;
 const MIN_CONTROL_SCALE = 0.55;
 
 const ENEMY_BAR_WIDTH = 120;
@@ -66,8 +76,8 @@ export class UIScene extends Phaser.Scene {
 
   private useTouchControls = false;
   private joystick?: VirtualJoyStick;
-  private joyBase?: Phaser.GameObjects.Arc;
-  private joyThumb?: Phaser.GameObjects.Arc;
+  private joyBase?: Phaser.GameObjects.Image;
+  private joyThumb?: Phaser.GameObjects.Image;
   private fireGfx?: Phaser.GameObjects.Arc;
   private fireText?: Phaser.GameObjects.Text;
   private fireZone?: Phaser.GameObjects.Zone;
@@ -75,6 +85,7 @@ export class UIScene extends Phaser.Scene {
 
   private uiScale = 1;
   private screenW = 0;
+  private gaugeFontPending = true;
   private hpBarX = 0;
   private hpBarY = 0;
   private hpBarW = 0;
@@ -127,15 +138,78 @@ export class UIScene extends Phaser.Scene {
     }
 
     this.layout();
+    this.requestGaugeFont();
     this.scale.on('resize', this.layout, this);
     this.events.once('shutdown', () => this.scale.off('resize', this.layout, this));
   }
 
+  private requestGaugeFont(): void {
+    this.gaugeFontPending = true;
+
+    const fontSet = document.fonts;
+    if (!fontSet) {
+      this.gaugeFontPending = false;
+      return;
+    }
+
+    fontSet.load(`${GAUGE_FONT_SIZE}px "Press Start 2P"`).catch(() => undefined);
+  }
+
+  private isGaugeFontLoaded(): boolean {
+    const fontSet = document.fonts;
+    if (!fontSet) return false;
+
+    let loaded = false;
+    fontSet.forEach((face) => {
+      if (face.family.replace(/["']/g, '') === 'Press Start 2P' && face.status === 'loaded') {
+        loaded = true;
+      }
+    });
+    return loaded;
+  }
+
+  private refreshGaugeFontMetrics(): void {
+    if (!this.gaugeFontPending || !this.isGaugeFontLoaded()) return;
+    this.speedText.style.update(true);
+    this.altitudeText.style.update(true);
+    this.gaugeFontPending = false;
+  }
+
+  private buildJoystickTexture(
+    key: string,
+    radius: number,
+    fillColour: number,
+    fillAlpha: number,
+    ringWidth: number,
+  ): void {
+    if (this.textures.exists(key)) return;
+
+    const ss = JOY_SUPERSAMPLE;
+    const r  = radius * ss;
+    const rw = ringWidth * ss;
+    const size = Math.ceil(r * 2);
+
+    const gfx = this.make.graphics({ x: 0, y: 0 }, false);
+    gfx.fillStyle(fillColour, fillAlpha);
+    gfx.fillCircle(r, r, r - rw);
+    gfx.lineStyle(rw, 0xffffff, JOY_RING_ALPHA);
+    gfx.strokeCircle(r, r, r - rw / 2);
+    gfx.generateTexture(key, size, size);
+    gfx.destroy();
+
+    this.textures.get(key).setFilter(Phaser.Textures.FilterMode.LINEAR);
+  }
+
   private createTouchControls(): void {
-    this.joyBase = this.add.circle(0, 0, JOY_BASE_RADIUS, 0xffffff, CONTROLS_ALPHA)
-      .setStrokeStyle(4, 0xffffff, CONTROLS_ALPHA + 0.2);
-    this.joyThumb = this.add.circle(0, 0, JOY_THUMB_RADIUS, 0xcccccc, CONTROLS_ALPHA + 0.15)
-      .setStrokeStyle(3, 0xffffff, CONTROLS_ALPHA + 0.2);
+    this.buildJoystickTexture(
+      JOY_BASE_TEXTURE, JOY_BASE_RADIUS, 0xffffff, JOY_BASE_FILL_ALPHA, JOY_BASE_RING_WIDTH,
+    );
+    this.buildJoystickTexture(
+      JOY_THUMB_TEXTURE, JOY_THUMB_RADIUS, JOY_THUMB_TINT, JOY_THUMB_FILL_ALPHA, JOY_THUMB_RING_WIDTH,
+    );
+
+    this.joyBase  = this.add.image(0, 0, JOY_BASE_TEXTURE);
+    this.joyThumb = this.add.image(0, 0, JOY_THUMB_TEXTURE);
 
     this.joystick = this.rexVirtualJoystick.add(this, {
       x: 0,
@@ -216,11 +290,11 @@ export class UIScene extends Phaser.Scene {
     const baseRadius  = JOY_BASE_RADIUS * cs;
     const thumbRadius = JOY_THUMB_RADIUS * cs;
     const jsOffset    = JOY_OFFSET * cs;
-    const jsX = jsOffset;
+    const jsX = w - jsOffset;
     const jsY = h - jsOffset;
 
-    this.joyBase?.setRadius(baseRadius);
-    this.joyThumb?.setRadius(thumbRadius);
+    this.joyBase?.setDisplaySize(baseRadius * 2, baseRadius * 2);
+    this.joyThumb?.setDisplaySize(thumbRadius * 2, thumbRadius * 2);
 
     if (this.joystick) {
       const js = this.joystick as unknown as {
@@ -242,7 +316,7 @@ export class UIScene extends Phaser.Scene {
 
     const fireRadius = FIRE_RADIUS * cs;
     const fbOffset   = FIRE_OFFSET * cs;
-    const fbX = w - fbOffset;
+    const fbX = fbOffset;
     const fbY = h - fbOffset;
 
     this.fireGfx?.setRadius(fireRadius).setPosition(fbX, fbY);
@@ -257,17 +331,41 @@ export class UIScene extends Phaser.Scene {
   }
 
   getControlState(): ControlState {
-    const js = this.joystick;
+    const js = this.joystick as unknown as {
+      forceX: number;
+      forceY: number;
+      radius: number;
+    } | undefined;
+
+    if (!js) {
+      return { up: false, down: false, left: false, right: false, fire: this.fireDown };
+    }
+
+    const radius = js.radius || 1;
+    const nx = Phaser.Math.Clamp(js.forceX / radius, -1, 1);
+    const ny = Phaser.Math.Clamp(js.forceY / radius, -1, 1);
+
     return {
-      up:    !!js && js.right,
-      down:  !!js && js.left,
-      left:  !!js && js.up,
-      right: !!js && js.down,
+      up:    false,
+      down:  false,
+      left:  false,
+      right: false,
       fire:  this.fireDown,
+      throttle: this.applyDeadzone(Math.max(0, nx)),
+      pitch:    this.applyDeadzone(ny),
     };
   }
 
+  private applyDeadzone(value: number): number {
+    const magnitude = Math.abs(value);
+    if (magnitude <= JOY_DEADZONE) return 0;
+    const scaled = (magnitude - JOY_DEADZONE) / (1 - JOY_DEADZONE);
+    return Math.sign(value) * Math.min(1, scaled);
+  }
+
   update(): void {
+    this.refreshGaugeFontMetrics();
+
     const pH   = this.registry.get('playerHealth')    as number ?? gameConfig.player.health;
     const pMax = this.registry.get('playerMaxHealth') as number ?? gameConfig.player.health;
 

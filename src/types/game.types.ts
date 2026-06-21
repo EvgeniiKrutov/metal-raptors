@@ -134,4 +134,6 @@ export interface ControlState {
   left:  boolean;
   right: boolean;
   fire:  boolean;
+  throttle?: number;
+  pitch?:    number;
 }

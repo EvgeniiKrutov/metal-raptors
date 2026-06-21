@@ -50,6 +50,14 @@ Responds to keyboard input each frame. Emits a `'fire'` event (`x, y, angle`) wh
 
 ### Input Handling (`handleInput`)
 
+`handleInput` accepts an abstract `ControlState`. Keyboard supplies the boolean
+`up/down/left/right/fire` flags; the touch joystick instead supplies the analog
+`throttle` and `pitch` axes (see [scenes.md](scenes.md#joystick--touch-controls)).
+When either analog axis is present the input is treated as **analog** and the
+boolean directions are ignored.
+
+**Keyboard (digital):**
+
 | Key | Action |
 |---|---|
 | `W` | Throttle up — increases `currentSpeed` by `acceleration × dt` |
@@ -57,9 +65,19 @@ Responds to keyboard input each frame. Emits a `'fire'` event (`x, y, angle`) wh
 | `A` / `D` | Rotate left / right by `turnSpeed` (deg/s) × dt |
 | `F` | Fire (respects `fireRate` cooldown) |
 
-When no throttle key is held, natural drag is applied: `currentSpeed -= currentSpeed × dragCoefficient`.
+**Touch joystick (analog):**
 
-`isThrottlingUp` is tracked and forwarded to `PhysicsSystem` so the stall model knows whether the player is trying to recover.
+| Axis | Action |
+|---|---|
+| `throttle` (0…1, right half of the stick) | Proportional thrust — `currentSpeed += acceleration × dt × throttle`. A partial push accelerates gently, a full push accelerates hard. |
+| `throttle = 0` (centre or left half) | No thrust; speed bleeds off via drag, so the left half just lets the plane slow down smoothly. |
+| `pitch` (−1…1, vertical direction) | Nose rotates at `turnSpeed × pitch × dt`: pulling up rotates the nose up, pulling down rotates it down, switching direction immediately. The rotation is not angle-limited — the plane can keep rotating like with the keyboard. |
+
+When no throttle is applied (keyboard idle or analog `throttle = 0`), natural drag
+is applied: `currentSpeed -= currentSpeed × dragCoefficient`.
+
+`isThrottlingUp` is tracked (analog: `throttle > 0`) and forwarded to
+`PhysicsSystem` so the stall model knows whether the player is trying to recover.
 
 ---
 

@@ -32,6 +32,9 @@ const GameContainer: React.FC<Props> = ({ onReady }) => {
         height:        window.innerHeight,
         parent:        containerRef.current,
       },
+      input: {
+        activePointers: 3,
+      },
       physics: {
         default: 'arcade',
         arcade: {

@@ -159,7 +159,7 @@ which fires regardless of scene state.
 
 A parallel scene rendered on top of `GameScene`. Draws health bars each frame using `Phaser.GameObjects.Graphics`.
 
-All HUD elements are laid out from the **live screen size** and re-flow on every Scale Manager `resize`: sizes/fonts scale by `uiScale = screenHeight / 1080` and elements anchor to the live screen edges (gauges + player bar top-left, stage indicator top-right, controls hint bottom-centre, touch controls in the bottom corners). See [display-and-responsiveness.md](display-and-responsiveness.md).
+All HUD elements are laid out from the **live screen size** and re-flow on every Scale Manager `resize`: sizes/fonts scale by `uiScale = screenHeight / 1080` and elements anchor to the live screen edges (gauges + player bar top-left, stage indicator top-right, controls hint bottom-centre, joystick bottom-right and fire button bottom-left). The joystick and fire button can be pressed at the same time (`input.activePointers: 3`). See [display-and-responsiveness.md](display-and-responsiveness.md).
 
 ### Player Health Bar
 
@@ -189,9 +189,36 @@ display panel, centred on the frame:
 Both values come from the registry (written by `GameScene`) and are rounded to
 whole integers with `Math.round`, so no fractional values are ever shown. The
 text uses the pixel-art font **Press Start 2P** (loaded from Google Fonts in
-`index.html`, with a `monospace` fallback) in amber `#fddb7f`. Because `update()`
-re-`setText`s every frame, the readout re-renders with the web font automatically
-once it finishes loading.
+`index.html`, with a `monospace` fallback) in amber `#fddb7f`.
+
+**Late web-font handling.** Press Start 2P is used *only* by this canvas HUD —
+nothing in the React/DOM layer references it. A canvas `fillText` does **not**
+reliably trigger a web-font download in WebKit/WKWebView (the iOS target), and the
+Google Fonts `display=swap` link only *declares* the `@font-face`; the file isn't
+fetched until something explicitly requests it. So on a cold first load the font
+is still absent when the gauge `Text` objects are created. Phaser measures a
+Text's font metrics (ascent/descent — which set the texture height and baseline)
+*once* and caches them; the per-frame `setText` re-renders with those cached
+metrics but never re-measures. Measured against the `monospace` fallback the box
+is too short, so when the real glyphs eventually swap in they render clipped (only
+the bottom half of each number shows) and stay that way until the scene restarts.
+
+The HUD handles this in two parts:
+
+1. `create()` calls `requestGaugeFont()`, which fires
+   `document.fonts.load('14px "Press Start 2P"')` to *explicitly* request the
+   download (the font is canvas-only, so nothing else would). It also arms the
+   `gaugeFontPending` flag.
+2. `update()` calls `refreshGaugeFontMetrics()` every frame while the flag is set.
+   It polls the actual `FontFace.status` (via `document.fonts.forEach`, not the
+   ambiguous `check()`), and once a `Press Start 2P` face reports `loaded` it
+   forces a one-time re-measure of both gauge texts with `style.update(true)`
+   (re-runs `MeasureText`), then clears the flag. Re-measuring on a real frame —
+   rather than synchronously inside the `load()` promise — guarantees the canvas
+   2D context has actually picked up the font before metrics are read.
+
+This makes the readout correct itself on first load instead of requiring a
+restart, and works even when the canvas is the font's only consumer.
 
 ### Stage Indicator
 
@@ -209,3 +236,16 @@ Renders three layers:
 ### Controls Hint
 
 A fixed text at the bottom centre of the screen lists the key bindings. Displayed at 45% alpha.
+
+### Joystick / Touch Controls
+
+Touch devices get a virtual joystick (bottom-right) and a fire button (bottom-left), built from the `phaser3-rex-plugins` virtual joystick.
+
+**Crisp rendering.** The game canvas runs in `pixelArt` mode (`antialias: false`), which would leave a vector circle's edges jagged. To keep the joystick smooth, its base and thumb are **pre-rendered into supersampled textures** (`buildJoystickTexture`): a filled circle plus a ring are drawn at `JOY_SUPERSAMPLE`× scale via a `Graphics` object, captured with `generateTexture`, and the resulting texture's filter is set to `LINEAR` so it downscales smoothly. The base/thumb are `Image`s using those textures, resized per layout with `setDisplaySize`. Opacity is baked into the textures (`JOY_BASE_FILL_ALPHA`, `JOY_THUMB_FILL_ALPHA`, `JOY_RING_ALPHA`) and is more opaque than the fire button (which still uses `CONTROLS_ALPHA`).
+
+**Analog mapping (`getControlState`).** The joystick is read as two independent analog axes rather than 8-direction booleans. The thumb offset (`forceX`, `forceY`) is normalised by the joystick `radius` to `[-1, 1]`, a `JOY_DEADZONE` is applied, and the result is returned on `ControlState` as:
+
+- `throttle = max(0, normalisedX)` — only the **right half** drives thrust; the left half and centre yield `0` (the plane coasts and drag bleeds off speed).
+- `pitch = normalisedY` — vertical **direction** controls the nose (down = nose down, up = nose up), switching immediately when the held direction changes.
+
+These analog axes feed `PlayerPlane.handleInput` (see [entities.md](entities.md#input-handling-handleinput)). Keyboard input leaves `throttle`/`pitch` undefined and keeps the original digital behaviour.

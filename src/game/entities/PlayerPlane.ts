@@ -11,6 +11,8 @@ interface Keys {
   left:  boolean;
   right: boolean;
   fire:  boolean;
+  throttle?: number;
+  pitch?:    number;
 }
 
 export class PlayerPlane extends Plane {
@@ -28,7 +30,16 @@ export class PlayerPlane extends Plane {
 
     const prevSpeed = this.currentSpeed;
 
-    if (keys.up) {
+    const analog   = keys.throttle !== undefined || keys.pitch !== undefined;
+    const throttle = keys.throttle ?? 0;
+
+    if (analog) {
+      if (throttle > 0) {
+        this.currentSpeed += cfg.acceleration * dt * throttle;
+      } else {
+        this.currentSpeed -= this.currentSpeed * gameConfig.physics.dragCoefficient;
+      }
+    } else if (keys.up) {
       this.currentSpeed += cfg.acceleration * dt;
     } else if (keys.down) {
       this.currentSpeed -= cfg.braking * dt;
@@ -37,11 +48,15 @@ export class PlayerPlane extends Plane {
     }
     this.currentSpeed = Math.max(0, Math.min(cfg.maxSpeed, this.currentSpeed));
 
-    this.isThrottlingUp = keys.up && this.currentSpeed > prevSpeed;
+    this.isThrottlingUp = (analog ? throttle > 0 : keys.up) && this.currentSpeed > prevSpeed;
 
     const turnRad = degToRad(cfg.turnSpeed) * dt;
-    if (keys.left)  this.rotation -= turnRad;
-    if (keys.right) this.rotation += turnRad;
+    if (analog) {
+      this.rotation += turnRad * (keys.pitch ?? 0);
+    } else {
+      if (keys.left)  this.rotation -= turnRad;
+      if (keys.right) this.rotation += turnRad;
+    }
 
     this.fireCooldown -= delta;
     if (keys.fire && this.fireCooldown <= 0) {
