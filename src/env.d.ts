@@ -33,6 +33,8 @@ interface ImportMetaEnv {
   readonly VITE_PARALLAX_FG_FACTOR: string;
   readonly VITE_PARALLAX_GROUND_FACTOR: string;
   readonly VITE_GAMECENTER_MOCK: string;
+  readonly VITE_API_DOMAIN: string;
+  readonly VITE_API_PORT: string;
 }
 
 interface ImportMeta {

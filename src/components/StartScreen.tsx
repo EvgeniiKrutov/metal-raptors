@@ -6,11 +6,11 @@ import PlaneSelector from './PlaneSelector';
 interface Props {
   ready: boolean;
   completed: string[];
-  userId: string | null;
+  username: string | null;
   onStart: (levelId: string) => void;
 }
 
-const StartScreen: React.FC<Props> = ({ ready, completed, userId, onStart }) => {
+const StartScreen: React.FC<Props> = ({ ready, completed, username, onStart }) => {
   const levels = getLevels();
 
   const [showSelector, setShowSelector] = useState(false);
@@ -60,7 +60,7 @@ const StartScreen: React.FC<Props> = ({ ready, completed, userId, onStart }) => 
       </button>
 
       <p className="start-status">{ready ? 'Select a level' : 'Loading…'}</p>
-      <p className="start-userid">Player: {userId ?? 'none'}</p>
+      <p className="start-userid">Player: {username ?? 'none'}</p>
     </div>
   );
 };

@@ -16,8 +16,8 @@ const App: React.FC = () => {
     isReady,
     isStarted,
     completed,
-    gcResolved,
-    gcUserId,
+    playerResolved,
+    username,
     attachListeners,
     startGame,
     restartGame,
@@ -29,7 +29,7 @@ const App: React.FC = () => {
     attachListeners();
   }, [attachListeners]);
 
-  const isLoading = !isReady || !gcResolved;
+  const isLoading = !isReady || !playerResolved;
 
   return (
     <div className="game-wrapper">
@@ -43,7 +43,7 @@ const App: React.FC = () => {
         <StartScreen
           ready={isReady}
           completed={completed}
-          userId={gcUserId}
+          username={username}
           onStart={startGame}
         />
       )}

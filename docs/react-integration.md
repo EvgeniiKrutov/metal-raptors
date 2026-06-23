@@ -25,11 +25,12 @@ while `!isStarted`; the pause overlay while `isStarted && isPaused && !isGameOve
 the game-over overlay while `isGameOver`. Passes `useGame` state and handlers down
 as props.
 
-**Combined gate.** `App` computes `isLoading = !isReady || !gcResolved` and renders
-`<LoadingScreen />` (on top of everything) until both Phaser assets and Game Center
-auth resolve. `GameContainer` stays mounted underneath so Phaser keeps loading and
-emits `ASSETS_LOADED` as usual. The resolved `gcUserId` is passed to `StartScreen`.
-See [gamecenter.md](gamecenter.md).
+**Combined gate.** `App` computes `isLoading = !isReady || !playerResolved` and
+renders `<LoadingScreen />` (on top of everything) until both Phaser assets and the
+backend player profile resolve. `GameContainer` stays mounted underneath so Phaser
+keeps loading and emits `ASSETS_LOADED` as usual. The resolved `username` is passed
+to `StartScreen`. See [gamecenter.md](gamecenter.md) and
+[player-profile.md](player-profile.md).
 
 ### `GameContainer` (`src/components/GameContainer.tsx`)
 
@@ -42,7 +43,7 @@ On touch devices, best-effort locks the screen to landscape and shows a full-scr
 ### `LoadingScreen` (`src/components/LoadingScreen.tsx`)
 
 A self-contained full-screen overlay shown while the combined gate is pending
-(`!isReady || !gcResolved`). Presentational only — renders the game title and a
+(`!isReady || !playerResolved`). Presentational only — renders the game title and a
 pulsing status line (`label`, default `"Connecting…"`), styled to match the start
 overlay. Sits above all other overlays (`.loading-overlay`, `z-index: 300`). See
 [gamecenter.md](gamecenter.md).
@@ -57,9 +58,10 @@ The level selector. Renders one button per level from `getLevels()`, each with a
 ✓ badge when its id is in the persisted `completed` set. Selecting a level calls
 `onStart(levelId)`; buttons are disabled until `ready` (assets loaded). Also hosts
 the `plane-select-entry` (Garage) button that opens the `PlaneSelector`. Renders a
-`Player: <id|none>` line from the `userId` prop (the Game Center `teamPlayerID`,
-or `none`); since the menu only mounts after the combined gate clears, `userId` is
-already final — no flicker. See [gamecenter.md](gamecenter.md).
+`Player: <username>` line from the `username` prop (the backend-resolved name, or
+`error` when the backend round-trip failed); since the menu only mounts after the
+combined gate clears, `username` is already final — no flicker. See
+[gamecenter.md](gamecenter.md) and [player-profile.md](player-profile.md).
 
 ### `PlaneSelector` (`src/components/PlaneSelector.tsx`)
 
@@ -105,8 +107,9 @@ Subscribes to `gameEvents` and exposes React-friendly state.
 | `playerHealth` | `{ current, max }` | Updated on `PLAYER_HEALTH_CHANGED` |
 | `completed` | `string[]` | Persisted completed level ids (for ✓ badges) |
 | `selectedLevelId` | `string \| null` | The level currently being played |
-| `gcResolved` | `boolean` | `false` until `authenticateGameCenter()` settles |
-| `gcUserId` | `string \| null` | Game Center `teamPlayerID`, or `null` for no access |
+| `playerResolved` | `boolean` | `false` until the backend `/player` round-trip settles |
+| `playerId` | `string \| null` | Game Center id, or a persisted stub uuid fallback |
+| `username` | `string \| null` | Backend-resolved name, or `'error'` on failure |
 | `attachListeners` | `() => void` | Call once after Phaser game is created |
 | `startGame` | `(levelId) => void` | Launches a level; emits `START_GAME { levelId }` |
 | `restartGame` | `() => void` | Replays the current level; emits `RESTART_GAME { levelId }` |
@@ -122,12 +125,15 @@ Subscribes to `gameEvents` and exposes React-friendly state.
 | `GAME_PAUSED` | Sets `isPaused = true` (shows the pause overlay) |
 | `PLAYER_HEALTH_CHANGED` | Updates `playerHealth` |
 
-### Mount effect (Game Center)
+### Mount effect (Game Center → player profile)
 
-A `useEffect` runs once on mount, calls `authenticateGameCenter()`, and on
-settle sets `gcUserId` to the result's `userId` and `gcResolved = true` (guarded
-by a `cancelled` flag for unmount). This runs in parallel with and independently
-of `isReady` (Phaser assets). See [gamecenter.md](gamecenter.md).
+A `useEffect` runs once on mount and chains: `authenticateGameCenter()` →
+`playerId = userId ?? getStubPlayerId()` → `fetchPlayerProfile(playerId)`. On
+success it sets `username` to `response.username`; the `.catch` sets
+`username = 'error'`. Either way it sets `playerResolved = true` (guarded by a
+`cancelled` flag for unmount). This runs in parallel with and independently of
+`isReady` (Phaser assets). See [gamecenter.md](gamecenter.md) and
+[player-profile.md](player-profile.md).
 
 ### Flow handlers
 
