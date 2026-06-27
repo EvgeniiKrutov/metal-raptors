@@ -22,17 +22,14 @@ export interface AIContext {
 
 export function behaviorToPlaneConfig(b: EnemyBehaviorConfig): PlaneConfig {
   return {
-    sprite:       b.stats.sprite,
-    width:        b.stats.width,
-    health:       b.stats.health,
-    damage:       b.stats.damage,
-    fireRate:     b.stats.fireRate,
-    maxSpeed:     b.flight.maxSpeed,
-    minSpeed:     b.flight.minSpeed,
-    acceleration: b.flight.acceleration,
-    braking:      b.flight.braking,
-    turnSpeed:    b.flight.turnSpeed,
-    weight:       b.flight.weight,
+    sprite:    b.stats.sprite,
+    width:     b.stats.width,
+    health:    b.stats.health,
+    damage:    b.stats.damage,
+    fireRate:  b.stats.fireRate,
+    maxSpeed:  b.flight.maxSpeed,
+    turnSpeed: b.flight.turnSpeed,
+    mass:      b.flight.mass,
   };
 }
 
@@ -90,9 +87,8 @@ export class EnemyPlane extends Plane {
     }
 
     const desiredHeading = this.computeHeading(ctx);
-    this.steerToward(desiredHeading, dt);
-    this.manageSpeed(dt);
-    PhysicsSystem.updateFlight(this, delta, true);
+    this.steerToHeading(desiredHeading, dt);
+    PhysicsSystem.updateFlight(this);
 
     if (this.aiState !== 'FLY' && this.aiState !== 'RETURN') {
       this.updateFiring(delta, ctx);
@@ -195,7 +191,7 @@ export class EnemyPlane extends Plane {
               return Phaser.Math.Angle.Between(this.x, this.y, aim.x, aim.y);
             }
           }
-          return this.rotation + sign * 100;
+          return this.rotation + sign * Math.PI * 0.9;
         }
         if (this.jitterTimer <= 0) {
           const amp         = this.behavior.ai.evasion.jitterAmplitude;
@@ -222,19 +218,6 @@ export class EnemyPlane extends Plane {
         return Phaser.Math.Angle.Between(this.x, this.y, aim.x, aim.y);
       }
     }
-  }
-
-  private steerToward(targetHeading: number, dt: number): void {
-    const maxStep = degToRad(this.planeConfig.turnSpeed) * dt;
-    const diff    = Phaser.Math.Angle.Wrap(targetHeading - this.rotation);
-    const step    = Phaser.Math.Clamp(diff, -maxStep, maxStep);
-    this.rotation = Phaser.Math.Angle.Wrap(this.rotation + step);
-  }
-
-  private manageSpeed(dt: number): void {
-    const cfg = this.planeConfig;
-    this.currentSpeed += cfg.acceleration * dt;
-    this.currentSpeed = Phaser.Math.Clamp(this.currentSpeed, cfg.minSpeed, cfg.maxSpeed);
   }
 
   private updateFiring(delta: number, ctx: AIContext): void {

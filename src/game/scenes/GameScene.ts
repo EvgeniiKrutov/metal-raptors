@@ -32,8 +32,6 @@ export class GameScene extends Phaser.Scene {
   private level!: LevelConfig;
 
   private keys!: {
-    W: Phaser.Input.Keyboard.Key;
-    S: Phaser.Input.Keyboard.Key;
     A: Phaser.Input.Keyboard.Key;
     D: Phaser.Input.Keyboard.Key;
     F: Phaser.Input.Keyboard.Key;
@@ -124,8 +122,6 @@ export class GameScene extends Phaser.Scene {
 
     const kb = this.input.keyboard!;
     this.keys = {
-      W: kb.addKey(Phaser.Input.Keyboard.KeyCodes.W),
-      S: kb.addKey(Phaser.Input.Keyboard.KeyCodes.S),
       A: kb.addKey(Phaser.Input.Keyboard.KeyCodes.A),
       D: kb.addKey(Phaser.Input.Keyboard.KeyCodes.D),
       F: kb.addKey(Phaser.Input.Keyboard.KeyCodes.F),
@@ -192,9 +188,8 @@ export class GameScene extends Phaser.Scene {
       : this.readKeyboardInput();
 
     this.player.handleInput(inputState, delta);
-    this.player.updatePhysics(delta);
+    this.player.updatePhysics();
 
-    this.registry.set('playerSpeed', this.player.currentSpeed);
     this.registry.set('playerAltitude', Math.max(0, groundY - this.player.y));
 
     this.levelManager.update(delta);
@@ -210,7 +205,6 @@ export class GameScene extends Phaser.Scene {
 
     if (this.player.y < 20) {
       this.player.y = 20;
-      if (this.player.verticalDrift < 0) this.player.verticalDrift = 0;
     }
 
     if (this.player.y >= groundY) {
@@ -364,8 +358,6 @@ export class GameScene extends Phaser.Scene {
 
   private readKeyboardInput(): ControlState {
     return {
-      up:    this.keys.W.isDown,
-      down:  this.keys.S.isDown,
       left:  this.keys.A.isDown,
       right: this.keys.D.isDown,
       fire:  this.keys.F.isDown,
@@ -377,7 +369,7 @@ export class GameScene extends Phaser.Scene {
     if (ui && ui.scene.isActive() && ui.isTouchActive()) {
       return ui.getControlState();
     }
-    return { up: false, down: false, left: false, right: false, fire: false };
+    return { left: false, right: false, fire: false };
   }
 
   spawnBullet(x: number, y: number, angle: number): void {

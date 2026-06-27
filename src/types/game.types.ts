@@ -2,11 +2,8 @@ export interface PlaneConfig {
   sprite: string;
   width: number;
   maxSpeed: number;
-  minSpeed: number;
-  acceleration: number;
-  braking: number;
   turnSpeed: number;
-  weight: number;
+  mass: number;
   health: number;
   damage: number;
   fireRate: number;
@@ -26,11 +23,8 @@ export interface EnemyBehaviorConfig {
 
   flight: {
     maxSpeed: number;
-    minSpeed: number;
-    acceleration: number;
-    braking: number;
     turnSpeed: number;
-    weight: number;
+    mass: number;
   };
 
   ai: {
@@ -67,11 +61,7 @@ export interface EnemyBehaviorConfig {
 }
 
 export interface PhysicsConfig {
-  gravity: number;
-  dragCoefficient: number;
-  liftCoefficient: number;
-  stallSpeed: number;
-  stallRotationRate: number;
+  turnResponsiveness: number;
 }
 
 export interface BulletConfig {
@@ -129,11 +119,8 @@ export type GameOutcome = 'VICTORY' | 'DEFEAT' | null;
 
 /** Abstract movement/fire intent, decoupled from the input device (keys or joystick). */
 export interface ControlState {
-  up:    boolean;
-  down:  boolean;
   left:  boolean;
   right: boolean;
   fire:  boolean;
-  throttle?: number;
-  pitch?:    number;
+  targetHeading?: number;
 }

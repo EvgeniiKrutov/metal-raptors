@@ -2,22 +2,17 @@ import Phaser from 'phaser';
 import { PlaneConfig } from '../../types/game.types';
 import { Plane } from './Plane';
 import { PhysicsSystem } from '../systems/PhysicsSystem';
-import { gameConfig } from '../config/gameConfig';
 import { degToRad } from '../utils/helpers';
 
 interface Keys {
-  up:    boolean;
-  down:  boolean;
   left:  boolean;
   right: boolean;
   fire:  boolean;
-  throttle?: number;
-  pitch?:    number;
+  targetHeading?: number;
 }
 
 export class PlayerPlane extends Plane {
   private fireCooldown: number = 0;
-  private isThrottlingUp: boolean = false;
 
   constructor(scene: Phaser.Scene, x: number, y: number, config: PlaneConfig) {
     super(scene, x, y, 'player', config);
@@ -28,34 +23,12 @@ export class PlayerPlane extends Plane {
     const dt  = delta / 1000;
     const cfg = this.planeConfig;
 
-    const prevSpeed = this.currentSpeed;
-
-    const analog   = keys.throttle !== undefined || keys.pitch !== undefined;
-    const throttle = keys.throttle ?? 0;
-
-    if (analog) {
-      if (throttle > 0) {
-        this.currentSpeed += cfg.acceleration * dt * throttle;
-      } else {
-        this.currentSpeed -= this.currentSpeed * gameConfig.physics.dragCoefficient;
-      }
-    } else if (keys.up) {
-      this.currentSpeed += cfg.acceleration * dt;
-    } else if (keys.down) {
-      this.currentSpeed -= cfg.braking * dt;
+    if (keys.targetHeading !== undefined) {
+      this.steerToHeading(keys.targetHeading, dt);
     } else {
-      this.currentSpeed -= this.currentSpeed * gameConfig.physics.dragCoefficient;
-    }
-    this.currentSpeed = Math.max(0, Math.min(cfg.maxSpeed, this.currentSpeed));
-
-    this.isThrottlingUp = (analog ? throttle > 0 : keys.up) && this.currentSpeed > prevSpeed;
-
-    const turnRad = degToRad(cfg.turnSpeed) * dt;
-    if (analog) {
-      this.rotation += turnRad * (keys.pitch ?? 0);
-    } else {
-      if (keys.left)  this.rotation -= turnRad;
-      if (keys.right) this.rotation += turnRad;
+      const maxRate     = degToRad(cfg.turnSpeed);
+      const desiredRate = (keys.right ? maxRate : 0) - (keys.left ? maxRate : 0);
+      this.applyTurnRate(desiredRate, dt);
     }
 
     this.fireCooldown -= delta;
@@ -70,8 +43,7 @@ export class PlayerPlane extends Plane {
     }
   }
 
-  updatePhysics(delta: number): void {
-    const isThrottlingUp = this.isThrottlingUp || false;
-    PhysicsSystem.updateFlight(this, delta, isThrottlingUp);
+  updatePhysics(): void {
+    PhysicsSystem.updateFlight(this);
   }
 }

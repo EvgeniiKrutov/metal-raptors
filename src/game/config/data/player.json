@@ -2,11 +2,8 @@
   "sprite": "player",
   "width": 64,
   "maxSpeed": 500,
-  "minSpeed": 100,
-  "acceleration": 200,
-  "braking": 150,
   "turnSpeed": 180,
-  "weight": 1.0,
+  "mass": 2.5,
   "health": 100,
   "damage": 10,
   "fireRate": 5

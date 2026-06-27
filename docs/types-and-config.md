@@ -10,12 +10,9 @@ Shared by player and enemy planes. Loaded from JSON and passed to the `Plane` ba
 |---|---|---|
 | `sprite` | string | Texture key |
 | `width` | number | Sprite width (px) |
-| `maxSpeed` | number | Maximum speed (px/s) |
-| `minSpeed` | number | Minimum speed — AI lower bound (px/s) |
-| `acceleration` | number | Speed increase per second (px/s²) |
-| `braking` | number | Speed decrease per second (px/s²) |
-| `turnSpeed` | number | Max rotation rate (degrees/s) |
-| `weight` | number | Gravity multiplier in physics model |
+| `maxSpeed` | number | Constant forward speed (px/s) |
+| `turnSpeed` | number | Max turn rate (degrees/s) |
+| `mass` | number | Turn inertia — higher = heavier/smoother, slower to change heading |
 | `health` | number | Starting and max HP |
 | `damage` | number | Damage per bullet |
 | `fireRate` | number | Shots per second |
@@ -64,7 +61,7 @@ Data model for configurable levels (see [levels.md](levels.md)):
 
 | Interface | Fields | Used by |
 |---|---|---|
-| `PhysicsConfig` | `gravity`, `dragCoefficient`, `liftCoefficient`, `stallSpeed`, `stallRotationRate` | `PhysicsSystem` |
+| `PhysicsConfig` | `turnResponsiveness` | `Plane` (mass-based turning) |
 | `BulletConfig` | `speed`, `width`, `height` | `PreloadScene`, `GameScene` |
 | `ParallaxLayerConfig` | `key`, `depth`, `parallaxFactor` | `ParallaxSystem` |
 | `SpawnConfig` | `ringMargin`, `ringJitter`, `minCeilingMargin`, `minGroundMargin`, `startDelayMs` | `LevelManager` |

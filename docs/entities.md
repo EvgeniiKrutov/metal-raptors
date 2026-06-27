@@ -9,17 +9,19 @@ All planes share:
 | Property | Type | Description |
 |---|---|---|
 | `planeConfig` | `PlaneConfig` | Loaded from JSON; flight and combat stats |
-| `currentSpeed` | number | Engine speed scalar (px/s); initialised to 70% of `maxSpeed` |
-| `verticalDrift` | number | Accumulated gravity–lift imbalance (px/s); positive = downward |
+| `currentSpeed` | number | Constant forward speed (px/s); fixed to `maxSpeed` at spawn |
+| `angularVelocity` | number | Current turn rate (rad/s); smoothed by mass (see [physics.md](physics.md#mass-based-turning)) |
 | `currentHealth` | number | Current HP |
 | `maxHealth` | number | Max HP (equal to `config.health` at spawn) |
 
-Arcade gravity is disabled on every plane body; gravity is applied manually by `PhysicsSystem`. World bounds collision is also disabled (planes screen-wrap or are removed via other logic).
+Arcade gravity is disabled on every plane body — planes never fall, they only fly forward along their heading. World bounds collision is also disabled (planes screen-wrap or are removed via other logic).
 
 ### Methods
 
 | Method | Returns | Description |
 |---|---|---|
+| `applyTurnRate(desiredRate, dt)` | `void` | Eases `angularVelocity` toward `desiredRate` (mass-based) and advances `rotation` |
+| `steerToHeading(targetHeading, dt)` | `void` | Turns toward a heading at up to `turnSpeed`, with mass-based lag |
 | `takeDamage(amount)` | `boolean` | Subtracts HP; returns `true` when HP reaches 0 |
 | `getHealthPercent()` | `number` | `currentHealth / maxHealth` (0–1) |
 | `isAlive()` | `boolean` | `currentHealth > 0` |
@@ -50,34 +52,24 @@ Responds to keyboard input each frame. Emits a `'fire'` event (`x, y, angle`) wh
 
 ### Input Handling (`handleInput`)
 
-`handleInput` accepts an abstract `ControlState`. Keyboard supplies the boolean
-`up/down/left/right/fire` flags; the touch joystick instead supplies the analog
-`throttle` and `pitch` axes (see [scenes.md](scenes.md#joystick--touch-controls)).
-When either analog axis is present the input is treated as **analog** and the
-boolean directions are ignored.
+`handleInput` accepts an abstract `ControlState`. The plane always flies forward
+at `maxSpeed`; input only steers the heading via the mass-based turning model (see
+[physics.md](physics.md#mass-based-turning)). There is no throttle or brake.
 
-**Keyboard (digital):**
+**Keyboard:**
 
 | Key | Action |
 |---|---|
-| `W` | Throttle up — increases `currentSpeed` by `acceleration × dt` |
-| `S` | Brake — decreases `currentSpeed` by `braking × dt` |
-| `A` / `D` | Rotate left / right by `turnSpeed` (deg/s) × dt |
+| `A` / `D` | Turn left / right — drives the desired turn rate to `∓turnSpeed`; releasing lets the heading coast to a stop via inertia |
 | `F` | Fire (respects `fireRate` cooldown) |
 
-**Touch joystick (analog):**
+**Touch joystick:**
 
-| Axis | Action |
-|---|---|
-| `throttle` (0…1, right half of the stick) | Proportional thrust — `currentSpeed += acceleration × dt × throttle`. A partial push accelerates gently, a full push accelerates hard. |
-| `throttle = 0` (centre or left half) | No thrust; speed bleeds off via drag, so the left half just lets the plane slow down smoothly. |
-| `pitch` (−1…1, vertical direction) | Nose rotates at `turnSpeed × pitch × dt`: pulling up rotates the nose up, pulling down rotates it down, switching direction immediately. The rotation is not angle-limited — the plane can keep rotating like with the keyboard. |
-
-When no throttle is applied (keyboard idle or analog `throttle = 0`), natural drag
-is applied: `currentSpeed -= currentSpeed × dragCoefficient`.
-
-`isThrottlingUp` is tracked (analog: `throttle > 0`) and forwarded to
-`PhysicsSystem` so the stall model knows whether the player is trying to recover.
+When the stick is pushed past the dead-zone it supplies a `targetHeading`
+(the direction the finger points). The plane calls `steerToHeading(targetHeading)`,
+so it **follows the finger with a slight delay** set by its `mass`. Releasing the
+stick drops `targetHeading`, and the heading coasts to a stop via inertia
+(see [scenes.md](scenes.md#joystick--touch-controls)).
 
 ---
 

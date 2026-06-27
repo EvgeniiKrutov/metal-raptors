@@ -12,7 +12,6 @@ const CONTROLS_ALPHA = 0.4;
 const GAUGE_WIDTH = 220;
 const GAUGE_HEIGHT = 195;
 const GAUGE_MARGIN = 16;
-const GAUGE_GAP = 8;
 const GAUGE_FONT = '"Press Start 2P", monospace';
 const GAUGE_TEXT_COLOUR = '#fddb7f';
 const GAUGE_FONT_SIZE = 14;
@@ -77,8 +76,6 @@ export class UIScene extends Phaser.Scene {
   private controlsText!: Phaser.GameObjects.Text;
   private stageText!: Phaser.GameObjects.Text;
   private altitudeText!: Phaser.GameObjects.Text;
-  private speedText!: Phaser.GameObjects.Text;
-  private speedGauge!: Phaser.GameObjects.Image;
   private altGauge!: Phaser.GameObjects.Image;
 
   private useTouchControls = false;
@@ -124,7 +121,7 @@ export class UIScene extends Phaser.Scene {
       0, 0,
       this.useTouchControls
         ? 'Joystick — Move    Button — Fire'
-        : 'W/S — Throttle/Brake    A/D — Rotate    F — Fire',
+        : 'A/D — Rotate    F — Fire',
       {
         fontFamily: 'Courier New',
         fontSize: '14px',
@@ -132,8 +129,7 @@ export class UIScene extends Phaser.Scene {
       },
     ).setOrigin(0.5, 0.5).setAlpha(0.45);
 
-    this.speedGauge = this.add.image(0, 0, 'speedometer').setOrigin(0, 0);
-    this.altGauge   = this.add.image(0, 0, 'speedometer').setOrigin(0, 0);
+    this.altGauge = this.add.image(0, 0, 'speedometer').setOrigin(0, 0);
 
     const gaugeTextStyle = {
       fontFamily: GAUGE_FONT,
@@ -141,7 +137,6 @@ export class UIScene extends Phaser.Scene {
       color: GAUGE_TEXT_COLOUR,
     };
 
-    this.speedText    = this.add.text(0, 0, '', gaugeTextStyle).setOrigin(0.5);
     this.altitudeText = this.add.text(0, 0, '', gaugeTextStyle).setOrigin(0.5);
 
     if (this.useTouchControls) {
@@ -182,7 +177,6 @@ export class UIScene extends Phaser.Scene {
 
   private refreshGaugeFontMetrics(): void {
     if (!this.gaugeFontPending || !this.isGaugeFontLoaded()) return;
-    this.speedText.style.update(true);
     this.altitudeText.style.update(true);
     this.gaugeFontPending = false;
   }
@@ -276,18 +270,14 @@ export class UIScene extends Phaser.Scene {
     const margin   = GAUGE_MARGIN * s;
     const gaugeW   = GAUGE_WIDTH * s;
     const gaugeH   = GAUGE_HEIGHT * s;
-    const gaugeGap = GAUGE_GAP * s;
 
-    const spdX    = margin;
-    const altX    = margin + gaugeW + gaugeGap;
+    const altX    = margin;
     const gaugeY  = margin;
     const centreY = gaugeY + gaugeH / 2;
 
-    this.speedGauge.setPosition(spdX, gaugeY).setDisplaySize(gaugeW, gaugeH);
     this.altGauge.setPosition(altX, gaugeY).setDisplaySize(gaugeW, gaugeH);
 
     const gaugeFont = Math.max(8, Math.round(GAUGE_FONT_SIZE * s));
-    this.speedText.setFontSize(gaugeFont).setPosition(spdX + gaugeW / 2, centreY);
     this.altitudeText.setFontSize(gaugeFont).setPosition(altX + gaugeW / 2, centreY);
 
     this.hpBarW = HP_BAR_WIDTH * s;
@@ -387,29 +377,23 @@ export class UIScene extends Phaser.Scene {
     } | undefined;
 
     if (!js) {
-      return { up: false, down: false, left: false, right: false, fire: this.fireDown };
+      return { left: false, right: false, fire: this.fireDown };
     }
 
     const radius = js.radius || 1;
     const nx = Phaser.Math.Clamp(js.forceX / radius, -1, 1);
     const ny = Phaser.Math.Clamp(js.forceY / radius, -1, 1);
 
+    if (Math.hypot(nx, ny) <= JOY_DEADZONE) {
+      return { left: false, right: false, fire: this.fireDown };
+    }
+
     return {
-      up:    false,
-      down:  false,
       left:  false,
       right: false,
       fire:  this.fireDown,
-      throttle: this.applyDeadzone(Math.max(0, nx)),
-      pitch:    this.applyDeadzone(ny),
+      targetHeading: Math.atan2(ny, nx),
     };
-  }
-
-  private applyDeadzone(value: number): number {
-    const magnitude = Math.abs(value);
-    if (magnitude <= JOY_DEADZONE) return 0;
-    const scaled = (magnitude - JOY_DEADZONE) / (1 - JOY_DEADZONE);
-    return Math.sign(value) * Math.min(1, scaled);
   }
 
   update(): void {
@@ -449,9 +433,7 @@ export class UIScene extends Phaser.Scene {
     }
 
     const altitude = Math.round((this.registry.get('playerAltitude') as number) ?? 0);
-    const speed    = Math.round((this.registry.get('playerSpeed')    as number) ?? 0);
     this.altitudeText.setText(`${altitude}m`);
-    this.speedText.setText(`${speed}km/h`);
 
     const stage = this.registry.get('stageInfo') as StageInfo | undefined;
     if (stage) {

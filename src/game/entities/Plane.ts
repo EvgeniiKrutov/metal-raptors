@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { PlaneConfig } from '../../types/game.types';
-import { GUN_TRACE_COUNT, gunTraceKey } from '../utils/helpers';
+import { gameConfig } from '../config/gameConfig';
+import { GUN_TRACE_COUNT, gunTraceKey, degToRad } from '../utils/helpers';
 
 const SMOKE_HEALTH_THRESHOLD = 0.3;
 
@@ -15,7 +16,7 @@ export abstract class Plane extends Phaser.Physics.Arcade.Sprite {
   planeConfig: PlaneConfig;
 
   currentSpeed: number = 0;
-  verticalDrift: number = 0;
+  angularVelocity: number = 0;
 
   currentHealth: number;
   maxHealth: number;
@@ -47,7 +48,7 @@ export abstract class Plane extends Phaser.Physics.Arcade.Sprite {
     this.currentHealth = config.health;
     this.maxHealth     = config.health;
 
-    this.currentSpeed = config.maxSpeed * 0.7;
+    this.currentSpeed = config.maxSpeed;
 
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setAllowGravity(false);
@@ -199,6 +200,20 @@ export abstract class Plane extends Phaser.Physics.Arcade.Sprite {
     this.smokeEmitter = undefined;
     this.clearGunTraces();
     super.destroy(fromScene);
+  }
+
+  applyTurnRate(desiredRate: number, dt: number): void {
+    const phys     = gameConfig.physics;
+    const approach = 1 - Math.exp(-(phys.turnResponsiveness / this.planeConfig.mass) * dt);
+    this.angularVelocity += (desiredRate - this.angularVelocity) * approach;
+    this.rotation = Phaser.Math.Angle.Wrap(this.rotation + this.angularVelocity * dt);
+  }
+
+  steerToHeading(targetHeading: number, dt: number): void {
+    const maxRate     = degToRad(this.planeConfig.turnSpeed);
+    const error       = Phaser.Math.Angle.Wrap(targetHeading - this.rotation);
+    const desiredRate = Phaser.Math.Clamp(dt > 0 ? error / dt : 0, -maxRate, maxRate);
+    this.applyTurnRate(desiredRate, dt);
   }
 
   takeDamage(amount: number): boolean {

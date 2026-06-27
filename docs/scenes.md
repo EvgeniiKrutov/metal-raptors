@@ -120,7 +120,7 @@ Each frame (when not game over):
 5. **Ground collision** — player Y ≥ `groundY` triggers DEFEAT; each enemy that reaches `groundY` is collected as a ground kill (explode with the `explosion` burst + remove)
 6. **Bullet culling** — bullets outside the camera view + margin (64 px) are deactivated; enemy bullets also die on hitting the ground
 7. **Combat** — `checkBulletEnemiesCollision` returns per-enemy hits; survivors get `onDamaged`, killed enemies are collected as air kills (unless they already reached the ground this frame) and exploded with the `explosion_air` burst, then removed; enemy-bullet→player hits update health and may trigger DEFEAT
-8. **Registry update** — the live enemies are written as an array of `{ screenX, screenY, percent }` descriptors plus a `stageInfo` object for `UIScene`; the player's `currentSpeed` (`playerSpeed`) and altitude above the ground (`playerAltitude` = `groundY − player.y`, floored at 0) are also written for the HUD readout
+8. **Registry update** — the live enemies are written as an array of `{ screenX, screenY, percent }` descriptors plus a `stageInfo` object for `UIScene`; the player's altitude above the ground (`playerAltitude` = `groundY − player.y`, floored at 0) is also written for the HUD readout
 9. **Parallax update**
 
 Individual enemy death is *never* an immediate VICTORY — only the `LevelManager`'s last-stage-cleared signal is.
@@ -182,20 +182,22 @@ bars disappear). One crimson (`0xdc143c`) bar, 120 px wide, is drawn 44 px above
 each enemy; a bar is skipped when its enemy is more than 200 px off-screen
 horizontally.
 
-### Altitude / Speed Gauges
+### Altitude Gauge + Health Bar
 
-Two instrument gauges sit side by side in the **top-left corner**, each drawn
-from the `speedometer` interface texture (scaled to `GAUGE_WIDTH × GAUGE_HEIGHT`
-via `setDisplaySize`). The readout values are printed **inside** each gauge's
-display panel, centred on the frame:
+A single instrument gauge sits in the **top-left corner**, with the player health
+bar immediately to its right. The gauge is drawn from the `speedometer` interface
+texture (scaled to `GAUGE_WIDTH × GAUGE_HEIGHT` via `setDisplaySize`). The readout
+value is printed **inside** the gauge's display panel, centred on the frame:
 
-- **Speed** (left gauge) shows `<n>km/h` from `playerSpeed`.
-- **Altitude** (right gauge) shows `<n>m` from `playerAltitude`.
+- **Altitude** shows `<n>m` from `playerAltitude`.
 
-Both values come from the registry (written by `GameScene`) and are rounded to
-whole integers with `Math.round`, so no fractional values are ever shown. The
-text uses the pixel-art font **Press Start 2P** (loaded from Google Fonts in
+The value comes from the registry (written by `GameScene`) and is rounded to a
+whole integer with `Math.round`, so no fractional value is ever shown. The text
+uses the pixel-art font **Press Start 2P** (loaded from Google Fonts in
 `index.html`, with a `monospace` fallback) in amber `#fddb7f`.
+
+(There is no speed gauge — every plane flies at a constant `maxSpeed`, so there is
+nothing to read out; see [physics.md](physics.md).)
 
 **Late web-font handling.** Press Start 2P is used *only* by this canvas HUD —
 nothing in the React/DOM layer references it. A canvas `fillText` does **not**
@@ -218,7 +220,7 @@ The HUD handles this in two parts:
 2. `update()` calls `refreshGaugeFontMetrics()` every frame while the flag is set.
    It polls the actual `FontFace.status` (via `document.fonts.forEach`, not the
    ambiguous `check()`), and once a `Press Start 2P` face reports `loaded` it
-   forces a one-time re-measure of both gauge texts with `style.update(true)`
+   forces a one-time re-measure of the gauge text with `style.update(true)`
    (re-runs `MeasureText`), then clears the flag. Re-measuring on a real frame —
    rather than synchronously inside the `load()` promise — guarantees the canvas
    2D context has actually picked up the font before metrics are read.
@@ -260,9 +262,6 @@ Touch devices get a virtual joystick (bottom-right) and a fire button (bottom-le
 
 **Crisp rendering.** The game canvas runs in `pixelArt` mode (`antialias: false`), which would leave a vector circle's edges jagged. To keep the joystick smooth, its base and thumb are **pre-rendered into supersampled textures** (`buildJoystickTexture`): a filled circle plus a ring are drawn at `JOY_SUPERSAMPLE`× scale via a `Graphics` object, captured with `generateTexture`, and the resulting texture's filter is set to `LINEAR` so it downscales smoothly. The base/thumb are `Image`s using those textures, resized per layout with `setDisplaySize`. Opacity is baked into the textures (`JOY_BASE_FILL_ALPHA`, `JOY_THUMB_FILL_ALPHA`, `JOY_RING_ALPHA`) and is more opaque than the fire button (which still uses `CONTROLS_ALPHA`).
 
-**Analog mapping (`getControlState`).** The joystick is read as two independent analog axes rather than 8-direction booleans. The thumb offset (`forceX`, `forceY`) is normalised by the joystick `radius` to `[-1, 1]`, a `JOY_DEADZONE` is applied, and the result is returned on `ControlState` as:
+**Heading mapping (`getControlState`).** The thumb offset (`forceX`, `forceY`) is normalised by the joystick `radius` to `[-1, 1]`. While the magnitude is within `JOY_DEADZONE` the stick reports no direction; past it, the direction the finger points is returned on `ControlState` as `targetHeading = atan2(normalisedY, normalisedX)` (radians).
 
-- `throttle = max(0, normalisedX)` — only the **right half** drives thrust; the left half and centre yield `0` (the plane coasts and drag bleeds off speed).
-- `pitch = normalisedY` — vertical **direction** controls the nose (down = nose down, up = nose up), switching immediately when the held direction changes.
-
-These analog axes feed `PlayerPlane.handleInput` (see [entities.md](entities.md#input-handling-handleinput)). Keyboard input leaves `throttle`/`pitch` undefined and keeps the original digital behaviour.
+This heading feeds `PlayerPlane.handleInput` (see [entities.md](entities.md#input-handling-handleinput)), which calls `steerToHeading` so the plane **follows the finger with a slight delay** governed by its `mass`. Keyboard input leaves `targetHeading` undefined and uses the `left`/`right` turn flags instead.
