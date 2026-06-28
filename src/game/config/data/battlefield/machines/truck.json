@@ -1,0 +1,8 @@
+{
+  "id": "truck",
+  "name": "Ernhardt Truck",
+  "sprite": "ernhardt_truck",
+  "displayWidth": 80,
+  "health": 60,
+  "speed": 40
+}

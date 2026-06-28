@@ -1,0 +1,20 @@
+{
+  "id": "battlefield-1",
+  "name": "Western Front",
+  "section": "battlefield",
+  "map": "battlefield",
+  "ground": {
+    "points": [
+      { "x": 0,    "y": 690 },
+      { "x": 320,  "y": 668 },
+      { "x": 640,  "y": 700 },
+      { "x": 980,  "y": 672 },
+      { "x": 1293, "y": 690 }
+    ]
+  },
+  "stages": [
+    { "maxConcurrent": 3, "enemies": [ { "type": "truck", "count": 3 } ] },
+    { "maxConcurrent": 3, "enemies": [ { "type": "fighter", "count": 2 }, { "type": "truck", "count": 2 } ] },
+    { "maxConcurrent": 4, "enemies": [ { "type": "fighter", "count": 3 }, { "type": "truck", "count": 3 } ] }
+  ]
+}

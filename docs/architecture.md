@@ -34,7 +34,8 @@ touches Capacitor directly. See [gamecenter.md](gamecenter.md).
 ## Scene Pipeline
 
 ```
-BootScene → PreloadScene → GameScene
+BootScene → PreloadScene ─┬─ GameScene         (Air Fights)
+                          └─ BattlefieldScene  (Battlefield)
                                ↕ (parallel)
                            UIScene
 ```
@@ -42,9 +43,13 @@ BootScene → PreloadScene → GameScene
 | Scene | Responsibility |
 |---|---|
 | `BootScene` | Immediately transitions to `PreloadScene` |
-| `PreloadScene` | Loads generic assets; generates runtime textures; idle hub that launches `GameScene` on `START_GAME { levelId }` |
-| `GameScene` | Main gameplay loop — player, `LevelManager`, physics, AI, combat, camera; loads the level's backgrounds in `preload` |
+| `PreloadScene` | Loads generic assets; generates runtime textures; idle hub that resolves `START_GAME { levelId }` to the level's scene key and launches it |
+| `GameScene` | Air-level gameplay loop — player, `LevelManager`, physics, AI, combat, camera; loads the level's backgrounds in `preload` |
+| `BattlefieldScene` | Battlefield gameplay loop — side-scrolling map, curved ground (`TerrainSystem`), enemy planes + ground machines; see [battlefield.md](battlefield.md) |
 | `UIScene` | Parallel HUD overlay — health bars + stage indicator drawn with `Graphics` |
+
+The level → scene routing is driven by the **section registry**
+(`data/sections.ts`, `getSceneKeyForLevel`). See [battlefield.md](battlefield.md).
 
 ## Data-Driven Design
 

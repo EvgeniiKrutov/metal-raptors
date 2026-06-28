@@ -67,7 +67,11 @@ shot down before reaching the ground.
 ### Idle hub / menu re-entry
 
 `create()` (re-)arms a single `gameEvents.once(START_GAME, ({ levelId }) =>
-this.scene.start('GameScene', { levelId }))` and emits `ASSETS_LOADED`. Returning
+this.scene.start(getSceneKeyForLevel(levelId), { levelId }))` and emits
+`ASSETS_LOADED`. The target scene is resolved from the section registry
+(`GameScene` for air levels, `BattlefieldScene` for battlefield levels — see
+[battlefield.md](battlefield.md)). The battlefield-shared truck sprite
+(`ernhardt_truck`) is preloaded here alongside the other generic assets. Returning
 from a game (`EXIT_TO_MENU`) does `scene.start('PreloadScene')`, which re-runs
 this `create()` and re-arms the listener, so the next level launch works exactly
 like the first.
@@ -159,11 +163,27 @@ so the touch and keyboard pause paths are identical from there on.
 
 ---
 
+## BattlefieldScene
+
+`src/game/scenes/BattlefieldScene.ts`
+
+The Battlefield-section gameplay scene. It mirrors `GameScene`'s lifecycle so all
+shared pieces (player, bullets, `CombatSystem`, `InterpolationSystem`, `UIScene`,
+pause/restart/exit, registry HUD writes) behave identically, but replaces the
+`ParallaxSystem` with a `TerrainSystem` (tiled side-scrolling map + curved ground)
+and the `LevelManager` with a `BattlefieldLevelManager` (planes + ground machines).
+The ground is a periodic curve `groundYAt(x)` that backs every collision query, and
+the camera uses a fixed configurable zoom rather than the air levels' height-derived
+zoom. Full details — data model, terrain, machines, win/lose — are in
+[battlefield.md](battlefield.md).
+
+---
+
 ## UIScene
 
 `src/game/scenes/UIScene.ts`
 
-A parallel scene rendered on top of `GameScene`. Draws health bars each frame using `Phaser.GameObjects.Graphics`.
+A parallel scene rendered on top of `GameScene` / `BattlefieldScene`. Draws health bars each frame using `Phaser.GameObjects.Graphics`.
 
 All HUD elements are laid out from the **live screen size** and re-flow on every Scale Manager `resize`: sizes/fonts scale by `uiScale = screenHeight / 1080` and elements anchor to the live screen edges (gauges + player bar top-left, stage indicator top-right, controls hint bottom-centre, joystick bottom-right and fire button bottom-left). The joystick and fire button can be pressed at the same time (`input.activePointers: 3`). See [display-and-responsiveness.md](display-and-responsiveness.md).
 

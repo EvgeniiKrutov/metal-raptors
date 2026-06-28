@@ -4,6 +4,7 @@ import VirtualJoystickPlugin from 'phaser3-rex-plugins/plugins/virtualjoystick-p
 import { BootScene }    from '../game/scenes/BootScene';
 import { PreloadScene } from '../game/scenes/PreloadScene';
 import { GameScene }    from '../game/scenes/GameScene';
+import { BattlefieldScene } from '../game/scenes/BattlefieldScene';
 import { UIScene }      from '../game/scenes/UIScene';
 
 interface Props {
@@ -44,7 +45,7 @@ const GameContainer: React.FC<Props> = ({ onReady }) => {
           debug: import.meta.env.DEV && false, // set true to see hitboxes
         },
       },
-      scene: [BootScene, PreloadScene, GameScene, UIScene],
+      scene: [BootScene, PreloadScene, GameScene, BattlefieldScene, UIScene],
       plugins: {
         scene: [
           {

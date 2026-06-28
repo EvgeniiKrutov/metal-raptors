@@ -3,6 +3,20 @@ import { Bullet } from '../entities/Bullet';
 import { EnemyPlane } from '../entities/EnemyPlane';
 import { PlayerPlane } from '../entities/PlayerPlane';
 
+export interface Damageable extends Phaser.GameObjects.GameObject {
+  x: number;
+  y: number;
+  takeDamage(amount: number): boolean;
+  isAlive(): boolean;
+  setTint(color?: number): this;
+  clearTint(): this;
+}
+
+export interface TargetHit {
+  target: Damageable;
+  killed: boolean;
+}
+
 export interface EnemyHit {
   enemy: EnemyPlane;
   killed: boolean;
@@ -16,40 +30,50 @@ export class CombatSystem {
     this.scene = scene;
   }
 
-  checkBulletEnemiesCollision(
+  checkBulletTargetsCollision(
     bullets: Phaser.Physics.Arcade.Group,
-    enemies: EnemyPlane[],
-  ): EnemyHit[] {
-    const hits: EnemyHit[] = [];
+    targets: Damageable[],
+  ): TargetHit[] {
+    const hits: TargetHit[] = [];
 
-    for (const enemy of enemies) {
-      if (!enemy.isAlive()) continue;
+    for (const target of targets) {
+      if (!target.isAlive()) continue;
 
       let hit = false;
       let killed = false;
 
       this.scene.physics.overlap(
-        enemy,
+        target,
         bullets,
         (obj1, obj2) => {
           const bullet = obj2 as Bullet;
           if (!bullet.active) return;
 
-          const isDead = enemy.takeDamage(bullet.damage);
+          const isDead = target.takeDamage(bullet.damage);
           bullet.deactivate();
           hit = true;
           if (isDead) killed = true;
 
-          this.flashHit(enemy, isDead);
+          this.flashHit(target, isDead);
         },
         undefined,
         this,
       );
 
-      if (hit) hits.push({ enemy, killed });
+      if (hit) hits.push({ target, killed });
     }
 
     return hits;
+  }
+
+  checkBulletEnemiesCollision(
+    bullets: Phaser.Physics.Arcade.Group,
+    enemies: EnemyPlane[],
+  ): EnemyHit[] {
+    return this.checkBulletTargetsCollision(bullets, enemies).map((hit) => ({
+      enemy: hit.target as EnemyPlane,
+      killed: hit.killed,
+    }));
   }
 
   checkEnemyBulletPlayerCollision(
@@ -80,7 +104,7 @@ export class CombatSystem {
     return hit;
   }
 
-  private flashHit(target: EnemyPlane | PlayerPlane, dead: boolean): void {
+  private flashHit(target: Damageable, dead: boolean): void {
     if (dead) return;
     target.setTint(0xff0000);
     this.scene.time.delayedCall(this.hitFlashDuration, () => {

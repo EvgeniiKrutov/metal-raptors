@@ -3,6 +3,7 @@ import { gameEvents, EVENTS } from '../Game';
 import { GUN_TRACE_COUNT, gunTraceKey, gunTracePath, isTouchDevice } from '../utils/helpers';
 import { getPlanes, planeTextureKey } from '../config/data/planes/index';
 import { getSelectedPlane } from '../utils/selectedPlane';
+import { getSceneKeyForLevel } from '../config/data/sections';
 
 const PLANE_BASE_WIDTH = 150;
 const PLANE_MOBILE_SCALE = 1.6;
@@ -48,6 +49,9 @@ export class PreloadScene extends Phaser.Scene {
     if (!this.cache.audio.exists('bullet_shot')) {
       this.load.audio('bullet_shot', 'sounds/bullet_shot_1.wav');
     }
+    if (!this.textures.exists('ernhardt_truck')) {
+      this.load.image('ernhardt_truck', 'sprites/machines/ernhardt_truck.png');
+    }
 
     for (let i = 1; i <= GUN_TRACE_COUNT; i++) {
       const key = gunTraceKey(i);
@@ -63,7 +67,7 @@ export class PreloadScene extends Phaser.Scene {
 
     gameEvents.once(EVENTS.START_GAME, ({ levelId }: { levelId: string }) => {
       this.buildPlayerTexture();
-      this.scene.start('GameScene', { levelId });
+      this.scene.start(getSceneKeyForLevel(levelId), { levelId });
     });
     gameEvents.emit(EVENTS.ASSETS_LOADED);
   }
