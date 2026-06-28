@@ -4,12 +4,13 @@
   "section": "battlefield",
   "map": "battlefield",
   "ground": {
-    "points": [
-      { "x": 0,    "y": 690 },
-      { "x": 320,  "y": 668 },
-      { "x": 640,  "y": 700 },
-      { "x": 980,  "y": 672 },
-      { "x": 1293, "y": 690 }
+    "baseline": 672.08,
+    "period": 1293,
+    "harmonics": [
+      { "cos": -2.876, "sin": -9.866 },
+      { "cos": 4.614,  "sin": -3.561 },
+      { "cos": -3.399, "sin": 3.787 },
+      { "cos": 0.811,  "sin": 1.968 }
     ]
   },
   "stages": [

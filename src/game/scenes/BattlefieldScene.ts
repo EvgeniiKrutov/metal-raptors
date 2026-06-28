@@ -19,7 +19,7 @@ import { UIScene } from './UIScene';
 
 const EXPLOSION_FRAME_WIDTH = 186;
 const EXPLOSION_SCALE_FACTOR = 0.9;
-const GROUND_EXPLOSION_Y_OFFSET = 30;
+const GROUND_EXPLOSION_SCALE = 1.8;
 
 export class BattlefieldScene extends Phaser.Scene {
   player!: PlayerPlane;
@@ -82,7 +82,7 @@ export class BattlefieldScene extends Phaser.Scene {
 
     this.interpolationSystem = new InterpolationSystem(this);
 
-    this.terrainSystem = new TerrainSystem(this, tileWidth, this.worldWidth, this.worldHeight);
+    this.terrainSystem = new TerrainSystem(this, this.worldWidth, this.worldHeight);
     this.terrainSystem.create(this.mapKey(), this.level.ground);
 
     this.bullets = this.physics.add.group({
@@ -458,7 +458,7 @@ export class BattlefieldScene extends Phaser.Scene {
     switch (cause) {
       case 'ground': {
         const groundY = this.terrainSystem.groundYAt(plane.x);
-        this.spawnExplosion(plane.x, groundY + GROUND_EXPLOSION_Y_OFFSET, plane.displayWidth, 1, true);
+        this.spawnExplosion(plane.x, groundY, plane.displayWidth, 1, true, 'explosion', GROUND_EXPLOSION_SCALE);
         plane.hideWreck();
         break;
       }
@@ -481,7 +481,7 @@ export class BattlefieldScene extends Phaser.Scene {
     this.terrainSystem.update(this.cameras.main);
 
     if (reachedGround) {
-      this.spawnExplosion(plane.x, groundY + GROUND_EXPLOSION_Y_OFFSET, plane.displayWidth, 1, true);
+      this.spawnExplosion(plane.x, groundY, plane.displayWidth, 1, true, 'explosion', GROUND_EXPLOSION_SCALE);
       plane.hideWreck();
       this.crashingPlane = null;
     }
@@ -494,10 +494,11 @@ export class BattlefieldScene extends Phaser.Scene {
     originY: number,
     endsGame: boolean,
     key: string = 'explosion',
+    scale: number = 1,
   ): void {
     const boom = this.add.sprite(x, y, key, 0);
     boom.setOrigin(0.5, originY);
-    boom.setScale((planeSize / EXPLOSION_FRAME_WIDTH) * EXPLOSION_SCALE_FACTOR);
+    boom.setScale((planeSize / EXPLOSION_FRAME_WIDTH) * EXPLOSION_SCALE_FACTOR * scale);
     boom.setDepth(20);
     boom.play(key);
 

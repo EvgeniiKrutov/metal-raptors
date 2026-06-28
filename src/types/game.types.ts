@@ -136,13 +136,15 @@ export interface BattlefieldWorldConfig {
   planeSpeed: number;
 }
 
-export interface GroundPoint {
-  x: number;
-  y: number;
+export interface GroundHarmonic {
+  cos: number;
+  sin: number;
 }
 
 export interface GroundCurveConfig {
-  points: GroundPoint[];
+  baseline: number;
+  period: number;
+  harmonics: GroundHarmonic[];
 }
 
 export interface MachineConfig {
