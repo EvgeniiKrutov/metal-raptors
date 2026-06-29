@@ -31,6 +31,9 @@ export class PreloadScene extends Phaser.Scene {
     if (!this.textures.exists('bullet')) {
       this.load.image('bullet', 'effects/bullet.png');
     }
+    if (!this.textures.exists('bomb')) {
+      this.load.image('bomb', 'effects/missiles_world_war_1/missile_2.png');
+    }
     if (!this.textures.exists('speedometer')) {
       this.load.image('speedometer', 'interface/speedometer.png');
     }

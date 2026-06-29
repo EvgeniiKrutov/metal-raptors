@@ -62,6 +62,15 @@ at `maxSpeed`; input only steers the heading via the mass-based turning model (s
 |---|---|
 | `A` / `D` | Turn left / right — drives the desired turn rate to `∓turnSpeed`; releasing lets the heading coast to a stop via inertia |
 | `F` | Fire (respects `fireRate` cooldown) |
+| `H` | Drop a bomb (respects `bombCooldown`, default 10s) |
+
+Pressing `H` emits a `'bomb'` event (`x, y, angle, speed`) once the bomb cooldown
+has elapsed. The drop point is horizontally aligned with the plane and offset just
+below its fuselage (`y + displayHeight * 0.5`); `angle` and `speed` are the plane's
+heading and forward speed so the bomb inherits the plane's momentum. The cooldown
+length comes from `planeConfig.bombCooldown`; `getBombCooldownRatio()` exposes the
+remaining fraction (1 → just dropped, 0 → ready) for the HUD. The bomb feature is
+only wired up in `BattlefieldScene`.
 
 **Touch joystick:**
 
@@ -109,3 +118,33 @@ vy = sin(angle) × speed
 ```
 
 Arcade gravity is disabled on bullets.
+
+---
+
+## Bomb
+
+`src/game/entities/Bomb.ts` — extends `Phaser.Physics.Arcade.Image`.
+
+A gravity-driven projectile dropped by the player in `BattlefieldScene`. Unlike
+bullets, bombs are **not pooled** — each is created on drop and `destroy()`ed when
+it hits the ground or leaves the world. The texture is `bomb`
+(`effects/missiles_world_war_1/missile_2.png`).
+
+| Property | Description |
+|---|---|
+| `damage` | Damage applied to every target in the blast (from `BombConfig`) |
+| `area` | Blast radius in px, measured each side of impact (from `BombConfig`) |
+
+### Methods
+
+| Method | Description |
+|---|---|
+| `drop(angle, planeSpeed)` | Sets the initial velocity to `planeSpeed × inertia` along `angle` (so the bomb keeps the plane's momentum) and enables a downward gravity of `gravity × mass`. Heavier bombs fall faster. |
+| `faceVelocity()` | Rotates the sprite to point along its current velocity, so it noses down as it falls (called each frame by the scene) |
+
+The combination of forward inertia and downward gravity produces a parabolic
+arc rather than a straight vertical drop. On reaching the ground the scene plays
+a ground explosion (`explosion` spritesheet, same as a crashed plane) and applies
+`damage` to every enemy **vehicle** within `area` px horizontally, plus any low
+enemy **plane** within `area` px both horizontally and above the impact point. The
+player's own plane is never affected. See [battlefield.md](battlefield.md#bombing).

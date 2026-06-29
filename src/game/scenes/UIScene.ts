@@ -43,6 +43,13 @@ const FIRE_OFFSET = 150;
 const FIRE_FONT_SIZE = 20;
 const MIN_CONTROL_SCALE = 0.55;
 
+const BOMB_RADIUS = 50;
+const BOMB_GAP = 40;
+const BOMB_FONT_SIZE = 17;
+const BOMB_COLOUR = 0xffa030;
+const BOMB_READY_ALPHA = CONTROLS_ALPHA + 0.4;
+const BOMB_COOLDOWN_ALPHA = 0.15;
+
 const ENEMY_BAR_WIDTH = 120;
 const ENEMY_BAR_HEIGHT = 14;
 const ENEMY_BAR_OFFSET = 44;
@@ -87,6 +94,11 @@ export class UIScene extends Phaser.Scene {
   private fireZone?: Phaser.GameObjects.Zone;
   private fireDown = false;
 
+  private bombGfx?: Phaser.GameObjects.Arc;
+  private bombText?: Phaser.GameObjects.Text;
+  private bombZone?: Phaser.GameObjects.Zone;
+  private bombDown = false;
+
   private pauseBtn?: Phaser.GameObjects.Arc;
   private pauseIcon?: Phaser.GameObjects.Graphics;
   private pauseZone?: Phaser.GameObjects.Zone;
@@ -120,8 +132,8 @@ export class UIScene extends Phaser.Scene {
     this.controlsText = this.add.text(
       0, 0,
       this.useTouchControls
-        ? 'Joystick — Move    Button — Fire'
-        : 'A/D — Rotate    F — Fire',
+        ? 'Joystick — Move    Buttons — Fire / Bomb'
+        : 'A/D — Rotate    F — Fire    H — Bomb',
       {
         fontFamily: 'Courier New',
         fontSize: '14px',
@@ -244,6 +256,22 @@ export class UIScene extends Phaser.Scene {
     this.fireZone.on('pointerdown', () => { this.fireDown = true; });
     this.fireZone.on('pointerup',   () => { this.fireDown = false; });
     this.fireZone.on('pointerout',  () => { this.fireDown = false; });
+
+    this.bombGfx = this.add.circle(0, 0, BOMB_RADIUS, BOMB_COLOUR, CONTROLS_ALPHA)
+      .setStrokeStyle(4, 0xffffff, CONTROLS_ALPHA + 0.2);
+
+    this.bombText = this.add.text(0, 0, 'BOMB', {
+      fontFamily: 'Courier New',
+      fontSize: '24px',
+      color: '#ffffff',
+    }).setOrigin(0.5).setAlpha(BOMB_READY_ALPHA);
+
+    this.bombZone = this.add.zone(0, 0, BOMB_RADIUS * 2, BOMB_RADIUS * 2)
+      .setInteractive({ useHandCursor: true });
+
+    this.bombZone.on('pointerdown', () => { this.bombDown = true; });
+    this.bombZone.on('pointerup',   () => { this.bombDown = false; });
+    this.bombZone.on('pointerout',  () => { this.bombDown = false; });
   }
 
   private createPauseButton(): void {
@@ -342,6 +370,16 @@ export class UIScene extends Phaser.Scene {
       ?.setFontSize(Math.max(10, Math.round(FIRE_FONT_SIZE * cs)))
       .setPosition(fbX, fbY);
     this.fireZone?.setPosition(fbX, fbY).setSize(fireRadius * 2, fireRadius * 2, true);
+
+    const bombRadius = BOMB_RADIUS * cs;
+    const bombX = fbX;
+    const bombY = fbY - fireRadius - bombRadius - BOMB_GAP * cs;
+
+    this.bombGfx?.setRadius(bombRadius).setPosition(bombX, bombY);
+    this.bombText
+      ?.setFontSize(Math.max(9, Math.round(BOMB_FONT_SIZE * cs)))
+      .setPosition(bombX, bombY);
+    this.bombZone?.setPosition(bombX, bombY).setSize(bombRadius * 2, bombRadius * 2, true);
   }
 
   private layoutPauseButton(w: number): void {
@@ -377,7 +415,7 @@ export class UIScene extends Phaser.Scene {
     } | undefined;
 
     if (!js) {
-      return { left: false, right: false, fire: this.fireDown };
+      return { left: false, right: false, fire: this.fireDown, bomb: this.bombDown };
     }
 
     const radius = js.radius || 1;
@@ -385,13 +423,14 @@ export class UIScene extends Phaser.Scene {
     const ny = Phaser.Math.Clamp(js.forceY / radius, -1, 1);
 
     if (Math.hypot(nx, ny) <= JOY_DEADZONE) {
-      return { left: false, right: false, fire: this.fireDown };
+      return { left: false, right: false, fire: this.fireDown, bomb: this.bombDown };
     }
 
     return {
       left:  false,
       right: false,
       fire:  this.fireDown,
+      bomb:  this.bombDown,
       targetHeading: Math.atan2(ny, nx),
     };
   }
@@ -430,6 +469,13 @@ export class UIScene extends Phaser.Scene {
         enemy.percent,
         0xdc143c,
       );
+    }
+
+    if (this.bombGfx && this.bombText) {
+      const cooldown = (this.registry.get('bombCooldownRatio') as number) ?? 0;
+      const ready = cooldown <= 0;
+      this.bombGfx.setFillStyle(BOMB_COLOUR, ready ? CONTROLS_ALPHA : BOMB_COOLDOWN_ALPHA);
+      this.bombText.setAlpha(ready ? BOMB_READY_ALPHA : BOMB_COOLDOWN_ALPHA);
     }
 
     const altitude = Math.round((this.registry.get('playerAltitude') as number) ?? 0);

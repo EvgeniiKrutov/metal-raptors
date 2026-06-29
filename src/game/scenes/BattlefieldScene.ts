@@ -6,6 +6,7 @@ import { PlayerPlane } from '../entities/PlayerPlane';
 import { EnemyPlane }  from '../entities/EnemyPlane';
 import { AIContext }   from '../entities/EnemyPlane';
 import { Bullet }      from '../entities/Bullet';
+import { Bomb }        from '../entities/Bomb';
 import { Machine }     from '../entities/Machine';
 import { TerrainSystem }       from '../systems/TerrainSystem';
 import { CombatSystem }        from '../systems/CombatSystem';
@@ -25,6 +26,7 @@ export class BattlefieldScene extends Phaser.Scene {
   player!: PlayerPlane;
   bullets!: Phaser.Physics.Arcade.Group;
   enemyBullets!: Phaser.Physics.Arcade.Group;
+  private bombs: Bomb[] = [];
 
   terrainSystem!: TerrainSystem;
   combatSystem!: CombatSystem;
@@ -41,6 +43,7 @@ export class BattlefieldScene extends Phaser.Scene {
     A: Phaser.Input.Keyboard.Key;
     D: Phaser.Input.Keyboard.Key;
     F: Phaser.Input.Keyboard.Key;
+    H: Phaser.Input.Keyboard.Key;
   };
 
   private isGameOver: boolean = false;
@@ -76,6 +79,7 @@ export class BattlefieldScene extends Phaser.Scene {
     this.useTouch       = isTouchDevice();
     this.pendingOutcome = null;
     this.crashingPlane  = null;
+    this.bombs          = [];
 
     this.physics.world.setBounds(0, 0, this.worldWidth, this.worldHeight);
     this.physics.world.gravity.set(0, 0);
@@ -112,6 +116,10 @@ export class BattlefieldScene extends Phaser.Scene {
       this.spawnBullet(x, y, angle);
     });
 
+    this.player.on('bomb', (x: number, y: number, angle: number, speed: number) => {
+      this.spawnBomb(x, y, angle, speed);
+    });
+
     const cam = this.cameras.main;
     cam.setBounds(0, 0, this.worldWidth, this.worldHeight);
     cam.setRoundPixels(false);
@@ -124,12 +132,14 @@ export class BattlefieldScene extends Phaser.Scene {
       A: kb.addKey(Phaser.Input.Keyboard.KeyCodes.A),
       D: kb.addKey(Phaser.Input.Keyboard.KeyCodes.D),
       F: kb.addKey(Phaser.Input.Keyboard.KeyCodes.F),
+      H: kb.addKey(Phaser.Input.Keyboard.KeyCodes.H),
     };
 
     this.combatSystem = new CombatSystem(this);
 
     this.registry.set('playerHealth',    gameConfig.player.health);
     this.registry.set('playerMaxHealth', gameConfig.player.health);
+    this.registry.set('bombCooldownRatio', 0);
     this.registry.set('enemies', []);
 
     this.levelManager = new BattlefieldLevelManager(
@@ -279,6 +289,9 @@ export class BattlefieldScene extends Phaser.Scene {
       this.explodeEnemy(enemy, true);
     }
 
+    this.updateBombs();
+    this.registry.set('bombCooldownRatio', this.player.getBombCooldownRatio());
+
     const playerHit = this.combatSystem.checkEnemyBulletPlayerCollision(
       this.enemyBullets,
       this.player,
@@ -383,6 +396,7 @@ export class BattlefieldScene extends Phaser.Scene {
       left:  this.keys.A.isDown,
       right: this.keys.D.isDown,
       fire:  this.keys.F.isDown,
+      bomb:  this.keys.H.isDown,
     };
   }
 
@@ -391,7 +405,7 @@ export class BattlefieldScene extends Phaser.Scene {
     if (ui && ui.scene.isActive() && ui.isTouchActive()) {
       return ui.getControlState();
     }
-    return { left: false, right: false, fire: false };
+    return { left: false, right: false, fire: false, bomb: false };
   }
 
   spawnBullet(x: number, y: number, angle: number): void {
@@ -407,6 +421,67 @@ export class BattlefieldScene extends Phaser.Scene {
     if (bullet) {
       bullet.fire(x, y, angle, gameConfig.bullet.speed, gameConfig.enemy.damage);
     }
+  }
+
+  spawnBomb(x: number, y: number, angle: number, speed: number): void {
+    const bomb = new Bomb(this, x, y, gameConfig.bomb);
+    bomb.drop(angle, speed);
+    this.bombs.push(bomb);
+  }
+
+  private updateBombs(): void {
+    for (let i = this.bombs.length - 1; i >= 0; i--) {
+      const bomb = this.bombs[i];
+      bomb.faceVelocity();
+
+      const groundY = this.terrainSystem.groundYAt(bomb.x);
+      if (bomb.y >= groundY) {
+        this.explodeBomb(bomb, groundY);
+      } else if (
+        bomb.x < 0 ||
+        bomb.x > this.worldWidth ||
+        bomb.y > this.worldHeight + 200
+      ) {
+        this.removeBomb(bomb);
+      }
+    }
+  }
+
+  private explodeBomb(bomb: Bomb, groundY: number): void {
+    this.spawnExplosion(bomb.x, groundY, bomb.area * 2, 1, false, 'explosion');
+    this.applyBombDamage(bomb, groundY);
+    this.removeBomb(bomb);
+  }
+
+  private applyBombDamage(bomb: Bomb, impactY: number): void {
+    const machines = this.levelManager.getActiveMachines();
+    const killedMachines: Machine[] = [];
+    for (const machine of machines) {
+      if (!machine.isAlive()) continue;
+      if (Math.abs(machine.x - bomb.x) <= bomb.area) {
+        if (machine.takeDamage(bomb.damage)) killedMachines.push(machine);
+      }
+    }
+    for (const machine of killedMachines) this.explodeMachine(machine);
+
+    const enemies = this.levelManager.getActiveEnemies();
+    const killedEnemies: EnemyPlane[] = [];
+    for (const enemy of enemies) {
+      if (!enemy.isAlive()) continue;
+      const horizontal = Math.abs(enemy.x - bomb.x);
+      const altitude   = impactY - enemy.y;
+      if (horizontal <= bomb.area && altitude >= 0 && altitude <= bomb.area) {
+        if (enemy.takeDamage(bomb.damage)) killedEnemies.push(enemy);
+        else enemy.onDamaged(this.buildAIContext(enemy));
+      }
+    }
+    for (const enemy of killedEnemies) this.explodeEnemy(enemy, true);
+  }
+
+  private removeBomb(bomb: Bomb): void {
+    const i = this.bombs.indexOf(bomb);
+    if (i >= 0) this.bombs.splice(i, 1);
+    bomb.destroy();
   }
 
   private isInCameraView(gameObject: Phaser.GameObjects.GameObject & { x: number; y: number }, camera: Phaser.Cameras.Scene2D.Camera): boolean {

@@ -16,6 +16,7 @@ Shared by player and enemy planes. Loaded from JSON and passed to the `Plane` ba
 | `health` | number | Starting and max HP |
 | `damage` | number | Damage per bullet |
 | `fireRate` | number | Shots per second |
+| `bombCooldown` | number? | Optional. Bomb re-arm time in ms (player only; default 10000) |
 
 ### `EnemyBehaviorConfig`
 
@@ -43,6 +44,7 @@ Root shape of the merged game configuration object (`gameConfig`).
 | `player` | `PlaneConfig` |
 | `enemy` | `PlaneConfig` |
 | `bullet` | `BulletConfig` |
+| `bomb` | `BombConfig` |
 | `camera` | `{ lerp, zoom }` |
 | `parallax` | `ParallaxLayerConfig[]` |
 | `spawn` | `SpawnConfig` |
@@ -63,6 +65,7 @@ Data model for configurable levels (see [levels.md](levels.md)):
 |---|---|---|
 | `PhysicsConfig` | `turnResponsiveness` | `Plane` (mass-based turning) |
 | `BulletConfig` | `speed`, `width`, `height` | `PreloadScene`, `GameScene` |
+| `BombConfig` | `sprite`, `displayWidth`, `mass`, `damage`, `area`, `gravity`, `inertia` | `PreloadScene`, `BattlefieldScene`, `Bomb` |
 | `ParallaxLayerConfig` | `key`, `depth`, `parallaxFactor` | `ParallaxSystem` |
 | `SpawnConfig` | `ringMargin`, `ringJitter`, `minCeilingMargin`, `minGroundMargin`, `startDelayMs` | `LevelManager` |
 
@@ -95,6 +98,20 @@ Player plane stats as a `PlaneConfig`.
 
 Bullet speed, width, height.
 
+### `bomb.json`
+
+Player bomb tuning surfaced as `gameConfig.bomb` (`BombConfig`):
+
+| Field | Meaning |
+|---|---|
+| `sprite` | Texture key (`bomb`) |
+| `displayWidth` | On-screen width in px (height keeps aspect) |
+| `mass` | Multiplies `gravity` — higher = falls faster |
+| `damage` | Damage dealt to every target caught in the blast |
+| `area` | Blast radius in px, measured each side of the impact point |
+| `gravity` | Base downward acceleration (px/s²) before the `mass` multiplier |
+| `inertia` | Fraction of the plane's forward speed kept as horizontal launch velocity |
+
 ### `spawn.json`
 
 Off-screen-ring spawn tuning surfaced as `gameConfig.spawn` (`SpawnConfig`).
@@ -119,7 +136,7 @@ the ordered `LEVELS` array, `getLevels()`, and `getLevelById(id)`. See
 ## `gameConfig` Object
 
 `src/game/config/gameConfig.ts` loads and merges the individual JSON files
-(`world`, `physics`, `player`, `bullet`, `spawn`) into a single `GameConfigData`
+(`world`, `physics`, `player`, `bullet`, `bomb`, `spawn`) into a single `GameConfigData`
 object exported as `gameConfig`. All systems import from this single point.
 
 ---

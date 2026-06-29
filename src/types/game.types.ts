@@ -7,6 +7,7 @@ export interface PlaneConfig {
   health: number;
   damage: number;
   fireRate: number;
+  bombCooldown?: number;
 }
 
 export interface EnemyBehaviorConfig {
@@ -70,6 +71,16 @@ export interface BulletConfig {
   height: number;
 }
 
+export interface BombConfig {
+  sprite: string;
+  displayWidth: number;
+  mass: number;
+  damage: number;
+  area: number;
+  gravity: number;
+  inertia: number;
+}
+
 export interface ParallaxLayerConfig {
   key: string;
   depth: number;
@@ -109,6 +120,7 @@ export interface GameConfigData {
   player:  PlaneConfig;
   enemy:   PlaneConfig;
   bullet:  BulletConfig;
+  bomb:    BombConfig;
   camera:  { lerp: number; zoom: number };
   parallax: ParallaxLayerConfig[];
   spawn:    SpawnConfig;
@@ -183,5 +195,6 @@ export interface ControlState {
   left:  boolean;
   right: boolean;
   fire:  boolean;
+  bomb?: boolean;
   targetHeading?: number;
 }

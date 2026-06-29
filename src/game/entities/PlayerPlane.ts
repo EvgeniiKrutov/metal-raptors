@@ -8,11 +8,15 @@ interface Keys {
   left:  boolean;
   right: boolean;
   fire:  boolean;
+  bomb?: boolean;
   targetHeading?: number;
 }
 
+const DEFAULT_BOMB_COOLDOWN = 10000;
+
 export class PlayerPlane extends Plane {
   private fireCooldown: number = 0;
+  private bombCooldown: number = 0;
 
   constructor(scene: Phaser.Scene, x: number, y: number, config: PlaneConfig) {
     super(scene, x, y, 'player', config);
@@ -41,6 +45,22 @@ export class PlayerPlane extends Plane {
       this.emit('fire', bx, by, angle);
       this.spawnGunTrace();
     }
+
+    this.bombCooldown -= delta;
+    if (keys.bomb && this.bombCooldown <= 0) {
+      this.bombCooldown = this.bombCooldownDuration();
+      const bx = this.x;
+      const by = this.y + this.displayHeight * 0.5;
+      this.emit('bomb', bx, by, this.rotation, this.currentSpeed);
+    }
+  }
+
+  getBombCooldownRatio(): number {
+    return Phaser.Math.Clamp(this.bombCooldown / this.bombCooldownDuration(), 0, 1);
+  }
+
+  private bombCooldownDuration(): number {
+    return this.planeConfig.bombCooldown ?? DEFAULT_BOMB_COOLDOWN;
   }
 
   updatePhysics(): void {
