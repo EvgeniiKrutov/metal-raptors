@@ -12,6 +12,7 @@ import { TerrainSystem }       from '../systems/TerrainSystem';
 import { CombatSystem }        from '../systems/CombatSystem';
 import { InterpolationSystem } from '../systems/InterpolationSystem';
 import { BattlefieldLevelManager } from '../systems/BattlefieldLevelManager';
+import { SoundSystem } from '../systems/SoundSystem';
 import { gameEvents, EVENTS } from '../Game';
 import { ControlState, BattlefieldLevelConfig } from '../../types/game.types';
 import { isTouchDevice } from '../utils/helpers';
@@ -35,6 +36,7 @@ export class BattlefieldScene extends Phaser.Scene {
   combatSystem!: CombatSystem;
   interpolationSystem!: InterpolationSystem;
   levelManager!: BattlefieldLevelManager;
+  soundSystem!: SoundSystem;
 
   private levelId!: string;
   private level!: BattlefieldLevelConfig;
@@ -152,6 +154,9 @@ export class BattlefieldScene extends Phaser.Scene {
 
     this.combatSystem = new CombatSystem(this);
 
+    this.soundSystem = new SoundSystem(this, this.worldWidth);
+    this.soundSystem.start(this.player);
+
     this.registry.set('playerHealth',    gameConfig.player.health);
     this.registry.set('playerMaxHealth', gameConfig.player.health);
     this.registry.set('bombCooldownRatio', 0);
@@ -247,6 +252,8 @@ export class BattlefieldScene extends Phaser.Scene {
     const enemies = this.levelManager.getActiveEnemies();
     const machines = this.levelManager.getActiveMachines();
 
+    this.soundSystem.update(delta, enemies);
+
     this.player.updateSmoke();
 
     const groundDestroyed = new Set<EnemyPlane>();
@@ -327,6 +334,7 @@ export class BattlefieldScene extends Phaser.Scene {
 
       if (this.player.isAlive() && this.player.getHealthPercent() <= 0.3) {
         cam.shake(200, 0.004);
+        this.soundSystem.playStutter();
       }
 
       if (!this.player.isAlive()) {
@@ -437,7 +445,7 @@ export class BattlefieldScene extends Phaser.Scene {
     if (bullet) {
       bullet.fire(x, y, angle, this.bulletSpeed, gameConfig.player.damage);
       bullet.setDisplaySize(this.bulletDisplayWidth, this.bulletDisplayHeight);
-      this.sound.play('bullet_shot');
+      this.soundSystem.playShot();
     }
   }
 
@@ -536,6 +544,8 @@ export class BattlefieldScene extends Phaser.Scene {
     this.isGameOver     = true;
     this.pendingOutcome = 'VICTORY';
 
+    this.soundSystem.enterGameOver();
+
     this.time.delayedCall(800, () => {
       this.scene.pause();
       gameEvents.emit(EVENTS.GAME_OVER, {
@@ -549,6 +559,8 @@ export class BattlefieldScene extends Phaser.Scene {
     if (this.isGameOver) return;
     this.isGameOver     = true;
     this.pendingOutcome = 'DEFEAT';
+
+    this.soundSystem.enterGameOver();
 
     this.registry.set('enemies', []);
     this.interpolationSystem.unregister(plane);
@@ -597,6 +609,8 @@ export class BattlefieldScene extends Phaser.Scene {
     key: string = 'explosion',
     scale: number = 1,
   ): void {
+    this.soundSystem.playExplosion();
+
     const boom = this.add.sprite(x, y, key, 0);
     boom.setOrigin(0.5, originY);
     boom.setScale((planeSize / EXPLOSION_FRAME_WIDTH) * EXPLOSION_SCALE_FACTOR * scale);

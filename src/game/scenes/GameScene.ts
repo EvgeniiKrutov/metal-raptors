@@ -9,6 +9,7 @@ import { ParallaxSystem } from '../systems/ParallaxSystem';
 import { CombatSystem }   from '../systems/CombatSystem';
 import { InterpolationSystem } from '../systems/InterpolationSystem';
 import { LevelManager } from '../systems/LevelManager';
+import { SoundSystem } from '../systems/SoundSystem';
 import { gameEvents, EVENTS } from '../Game';
 import { ControlState, LevelConfig } from '../../types/game.types';
 import { isTouchDevice, backgroundLayerPaths, backgroundLayerKeys } from '../utils/helpers';
@@ -27,6 +28,7 @@ export class GameScene extends Phaser.Scene {
   combatSystem!: CombatSystem;
   interpolationSystem!: InterpolationSystem;
   levelManager!: LevelManager;
+  soundSystem!: SoundSystem;
 
   private levelId!: string;
   private level!: LevelConfig;
@@ -129,6 +131,9 @@ export class GameScene extends Phaser.Scene {
 
     this.combatSystem = new CombatSystem(this);
 
+    this.soundSystem = new SoundSystem(this, world.width);
+    this.soundSystem.start(this.player);
+
     this.registry.set('playerHealth',    gameConfig.player.health);
     this.registry.set('playerMaxHealth', gameConfig.player.health);
     this.registry.set('enemies', []);
@@ -197,6 +202,8 @@ export class GameScene extends Phaser.Scene {
 
     this.updateEnemyAI(delta);
     const enemies = this.levelManager.getActiveEnemies();
+
+    this.soundSystem.update(delta, enemies);
 
     this.player.updateSmoke();
 
@@ -277,6 +284,7 @@ export class GameScene extends Phaser.Scene {
 
       if (this.player.isAlive() && this.player.getHealthPercent() <= 0.3) {
         cam.shake(200, 0.004);
+        this.soundSystem.playStutter();
       }
 
       if (!this.player.isAlive()) {
@@ -376,7 +384,7 @@ export class GameScene extends Phaser.Scene {
     const bullet = this.bullets.get(x, y) as Bullet;
     if (bullet) {
       bullet.fire(x, y, angle, gameConfig.bullet.speed, gameConfig.player.damage);
-      this.sound.play('bullet_shot');
+      this.soundSystem.playShot();
     }
   }
 
@@ -418,6 +426,8 @@ export class GameScene extends Phaser.Scene {
     this.isGameOver     = true;
     this.pendingOutcome = 'VICTORY';
 
+    this.soundSystem.enterGameOver();
+
     this.time.delayedCall(800, () => {
       this.scene.pause();
       gameEvents.emit(EVENTS.GAME_OVER, {
@@ -431,6 +441,8 @@ export class GameScene extends Phaser.Scene {
     if (this.isGameOver) return;
     this.isGameOver     = true;
     this.pendingOutcome = 'DEFEAT';
+
+    this.soundSystem.enterGameOver();
 
     this.registry.set('enemies', []);
     this.interpolationSystem.unregister(plane);
@@ -478,6 +490,8 @@ export class GameScene extends Phaser.Scene {
     endsGame: boolean,
     key: string = 'explosion',
   ): void {
+    this.soundSystem.playExplosion();
+
     const boom = this.add.sprite(x, y, key, 0);
     boom.setOrigin(0.5, originY);
     boom.setScale((planeSize / EXPLOSION_FRAME_WIDTH) * 1.5);

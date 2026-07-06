@@ -1,0 +1,29 @@
+{
+  "library": {
+    "ambient_wind":      { "path": "sounds/ambient_wind.wav",      "volume": 0.35 },
+    "engine_idle":       { "path": "sounds/engine_idle.wav",       "volume": 0.35 },
+    "engine_throttle_1": { "path": "sounds/engine_throttle_1.wav", "volume": 0.2 },
+    "engine_throttle_2": { "path": "sounds/engine_throttle_2.wav", "volume": 0.2 },
+    "engine_stutter":    { "path": "sounds/engine_stutter.wav",    "volume": 0.5 },
+    "explosion_1":       { "path": "sounds/explosion_1.wav",       "volume": 0.45 },
+    "explosion_2":       { "path": "sounds/explosion_2.wav",       "volume": 0.45 },
+    "explosion_3":       { "path": "sounds/explosion_3.wav",       "volume": 0.45 },
+    "bullet_shot":       { "path": "sounds/bullet_shot_1.wav",     "volume": 0.15 }
+  },
+  "pools": {
+    "explosion":      ["explosion_1", "explosion_2", "explosion_3"],
+    "engineThrottle": ["engine_throttle_1", "engine_throttle_2"]
+  },
+  "engine": {
+    "crossfadeMs": 300,
+    "throttleGraceMs": 300,
+    "turnRateThreshold": 0.4,
+    "climbAngleDeg": 30,
+    "spawnFadeInMs": 600,
+    "enemyVolumeFactor": 0.25,
+    "enemyFadeStartDistance": 700,
+    "enemyFadeEndDistance": 2000,
+    "maxAudibleEnemyEngines": 3,
+    "attenuationSmoothing": 6
+  }
+}

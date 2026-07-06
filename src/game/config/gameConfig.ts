@@ -5,6 +5,7 @@ import bombJson    from './data/bomb.json';
 import physicsJson from './data/physics.json';
 import worldJson   from './data/world.json';
 import spawnJson   from './data/spawn.json';
+import soundsJson  from './data/sounds.json';
 
 export const gameConfig: GameConfigData = {
   display:  worldJson.display,
@@ -16,6 +17,7 @@ export const gameConfig: GameConfigData = {
   bullet:   bulletJson,
   bomb:     bombJson,
   spawn:    spawnJson,
+  sounds:   soundsJson,
   enemy: {
     sprite:    'enemy',
     width:     64,

@@ -113,6 +113,33 @@ export interface LevelConfig {
   stages: StageConfig[];
 }
 
+export interface SoundDefinition {
+  path: string;
+  volume: number;
+}
+
+export interface EngineSoundConfig {
+  crossfadeMs: number;
+  throttleGraceMs: number;
+  turnRateThreshold: number;
+  climbAngleDeg: number;
+  spawnFadeInMs: number;
+  enemyVolumeFactor: number;
+  enemyFadeStartDistance: number;
+  enemyFadeEndDistance: number;
+  maxAudibleEnemyEngines: number;
+  attenuationSmoothing: number;
+}
+
+export interface SoundsConfig {
+  library: Record<string, SoundDefinition>;
+  pools: {
+    explosion: string[];
+    engineThrottle: string[];
+  };
+  engine: EngineSoundConfig;
+}
+
 export interface GameConfigData {
   display: { width: number; height: number };
   world:   { width: number; height: number };
@@ -124,6 +151,7 @@ export interface GameConfigData {
   camera:  { lerp: number; zoom: number };
   parallax: ParallaxLayerConfig[];
   spawn:    SpawnConfig;
+  sounds:   SoundsConfig;
 }
 
 export interface SectionLevelRef {

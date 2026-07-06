@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { gameEvents, EVENTS } from '../Game';
+import { gameConfig } from '../config/gameConfig';
 import { GUN_TRACE_COUNT, gunTraceKey, gunTracePath, isTouchDevice } from '../utils/helpers';
 import { getPlanes, planeTextureKey } from '../config/data/planes/index';
 import { getSelectedPlane } from '../utils/selectedPlane';
@@ -49,8 +50,10 @@ export class PreloadScene extends Phaser.Scene {
         frameHeight: 155,
       });
     }
-    if (!this.cache.audio.exists('bullet_shot')) {
-      this.load.audio('bullet_shot', 'sounds/bullet_shot_1.wav');
+    for (const [key, def] of Object.entries(gameConfig.sounds.library)) {
+      if (!this.cache.audio.exists(key)) {
+        this.load.audio(key, def.path);
+      }
     }
     if (!this.textures.exists('ernhardt_truck')) {
       this.load.image('ernhardt_truck', 'sprites/machines/ernhardt_truck.png');
