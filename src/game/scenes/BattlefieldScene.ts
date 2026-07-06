@@ -19,8 +19,11 @@ import { getBattlefieldLevels, getBattlefieldLevelById } from '../config/data/ba
 import { UIScene } from './UIScene';
 
 const EXPLOSION_FRAME_WIDTH = 186;
-const EXPLOSION_SCALE_FACTOR = 0.9;
+const EXPLOSION_SCALE_FACTOR = 0.7;
 const GROUND_EXPLOSION_SCALE = 1.8;
+const BATTLEFIELD_SPEED_SCALE = 0.6;
+
+const BULLET_PLANE_WIDTH_RATIO = 0.16;
 
 export class BattlefieldScene extends Phaser.Scene {
   player!: PlayerPlane;
@@ -38,6 +41,10 @@ export class BattlefieldScene extends Phaser.Scene {
 
   private worldWidth: number = 0;
   private worldHeight: number = 0;
+
+  private bulletDisplayWidth: number = 0;
+  private bulletDisplayHeight: number = 0;
+  private bulletSpeed: number = 0;
 
   private keys!: {
     A: Phaser.Input.Keyboard.Key;
@@ -70,7 +77,7 @@ export class BattlefieldScene extends Phaser.Scene {
   }
 
   create(): void {
-    const { camera, ceiling, tileWidth, tileHeight, widthTiles, planeScale, planeSpeed } = battlefieldWorld;
+    const { camera, ceiling, tileWidth, tileHeight, widthTiles, planeScale, planeSpeed, fallScale } = battlefieldWorld;
 
     this.worldWidth  = tileWidth * widthTiles;
     this.worldHeight = tileHeight;
@@ -108,7 +115,15 @@ export class BattlefieldScene extends Phaser.Scene {
       gameConfig.player,
     );
     this.player.setScale(planeScale);
-    this.player.currentSpeed = planeSpeed;
+    this.player.setSmokeScale(planeScale);
+    this.player.setFallScale(fallScale);
+    this.player.currentSpeed = planeSpeed * BATTLEFIELD_SPEED_SCALE;
+    const enemySpeedScale = this.player.currentSpeed / gameConfig.player.maxSpeed;
+
+    const bulletAspect = gameConfig.bullet.height / gameConfig.bullet.width;
+    this.bulletDisplayWidth  = this.player.displayWidth * BULLET_PLANE_WIDTH_RATIO;
+    this.bulletDisplayHeight = this.bulletDisplayWidth * bulletAspect;
+    this.bulletSpeed         = gameConfig.bullet.speed * enemySpeedScale;
 
     this.interpolationSystem.register(this.player);
 
@@ -151,6 +166,7 @@ export class BattlefieldScene extends Phaser.Scene {
       this.worldWidth,
       ceiling,
       planeScale,
+      enemySpeedScale,
       {
         onStageChanged: (stageIndex, totalStages) => {
           this.registry.set('stageInfo', {
@@ -202,8 +218,13 @@ export class BattlefieldScene extends Phaser.Scene {
     this.player.handleInput(inputState, delta);
     this.player.updatePhysics();
 
-    if (this.player.x < 0)               this.player.x = 0;
-    if (this.player.x > this.worldWidth) this.player.x = this.worldWidth;
+    if (this.player.x < 0) {
+      this.player.x += this.worldWidth;
+      cam.centerOn(this.player.x, cam.midPoint.y);
+    } else if (this.player.x > this.worldWidth) {
+      this.player.x -= this.worldWidth;
+      cam.centerOn(this.player.x, cam.midPoint.y);
+    }
 
     if (this.player.y < ceiling) {
       this.player.y = ceiling;
@@ -379,15 +400,18 @@ export class BattlefieldScene extends Phaser.Scene {
 
   private explodeEnemy(enemy: EnemyPlane, inAir: boolean): void {
     if (!enemy.visible) return;
-    const key = inAir ? 'explosion_air' : 'explosion';
-    this.spawnExplosion(enemy.x, enemy.y, enemy.displayWidth, 0.5, false, key);
+    if (inAir) {
+      this.spawnExplosion(enemy.x, enemy.y, enemy.displayWidth, 0.5, false, 'explosion_air');
+    } else {
+      this.spawnExplosion(enemy.x, enemy.y, this.player.displayWidth, 0.5, false, 'explosion', GROUND_EXPLOSION_SCALE);
+    }
     enemy.hideWreck();
     this.levelManager.removeEnemy(enemy);
   }
 
   private explodeMachine(machine: Machine): void {
     if (!machine.visible) return;
-    this.spawnExplosion(machine.x, machine.y, machine.displayWidth, 1, false, 'explosion');
+    this.spawnExplosion(machine.x, machine.y, this.player.displayWidth, 1, false, 'explosion', GROUND_EXPLOSION_SCALE);
     this.levelManager.removeMachine(machine);
   }
 
@@ -411,7 +435,8 @@ export class BattlefieldScene extends Phaser.Scene {
   spawnBullet(x: number, y: number, angle: number): void {
     const bullet = this.bullets.get(x, y) as Bullet;
     if (bullet) {
-      bullet.fire(x, y, angle, gameConfig.bullet.speed, gameConfig.player.damage);
+      bullet.fire(x, y, angle, this.bulletSpeed, gameConfig.player.damage);
+      bullet.setDisplaySize(this.bulletDisplayWidth, this.bulletDisplayHeight);
       this.sound.play('bullet_shot');
     }
   }
@@ -419,7 +444,8 @@ export class BattlefieldScene extends Phaser.Scene {
   spawnEnemyBullet(x: number, y: number, angle: number): void {
     const bullet = this.enemyBullets.get(x, y) as Bullet;
     if (bullet) {
-      bullet.fire(x, y, angle, gameConfig.bullet.speed, gameConfig.enemy.damage);
+      bullet.fire(x, y, angle, this.bulletSpeed, gameConfig.enemy.damage);
+      bullet.setDisplaySize(this.bulletDisplayWidth, this.bulletDisplayHeight);
     }
   }
 
@@ -448,7 +474,7 @@ export class BattlefieldScene extends Phaser.Scene {
   }
 
   private explodeBomb(bomb: Bomb, groundY: number): void {
-    this.spawnExplosion(bomb.x, groundY, bomb.area * 2, 1, false, 'explosion');
+    this.spawnExplosion(bomb.x, groundY, this.player.displayWidth, 1, false, 'explosion', GROUND_EXPLOSION_SCALE);
     this.applyBombDamage(bomb, groundY);
     this.removeBomb(bomb);
   }

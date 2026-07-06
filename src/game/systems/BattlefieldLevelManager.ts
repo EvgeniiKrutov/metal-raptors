@@ -25,6 +25,7 @@ export class BattlefieldLevelManager {
   private worldWidth: number;
   private ceiling: number;
   private planeScale: number;
+  private enemySpeedScale: number;
   private callbacks: BattlefieldLevelManagerCallbacks;
 
   private stageIndex: number = 0;
@@ -43,6 +44,7 @@ export class BattlefieldLevelManager {
     worldWidth: number,
     ceiling: number,
     planeScale: number,
+    enemySpeedScale: number,
     callbacks: BattlefieldLevelManagerCallbacks,
   ) {
     this.scene = scene;
@@ -53,6 +55,7 @@ export class BattlefieldLevelManager {
     this.worldWidth = worldWidth;
     this.ceiling = ceiling;
     this.planeScale = planeScale;
+    this.enemySpeedScale = enemySpeedScale;
     this.callbacks = callbacks;
   }
 
@@ -187,6 +190,8 @@ export class BattlefieldLevelManager {
 
     const enemy = new EnemyPlane(this.scene, x, y, behavior);
     enemy.setScale(this.planeScale);
+    enemy.setSmokeScale(this.planeScale);
+    enemy.currentSpeed = behavior.flight.maxSpeed * this.enemySpeedScale;
     enemy.setRotation(Phaser.Math.Angle.Between(x, y, this.player.x, this.player.y));
 
     this.interpolation.register(enemy);

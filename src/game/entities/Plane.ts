@@ -5,6 +5,9 @@ import { GUN_TRACE_COUNT, gunTraceKey, degToRad } from '../utils/helpers';
 
 const SMOKE_HEALTH_THRESHOLD = 0.3;
 
+const SMOKE_SCALE_START = 0.1;
+const SMOKE_SCALE_END   = 0.5;
+
 const CRASH_GRAVITY      = 900;
 const CRASH_INITIAL_FALL = 60;
 
@@ -25,10 +28,12 @@ export abstract class Plane extends Phaser.Physics.Arcade.Sprite {
   private crashVx = 0;
   private crashVy = 0;
   private crashSpin = 0;
+  private fallScale = 1;
 
   private smokeEmitter?: Phaser.GameObjects.Particles.ParticleEmitter;
   private smokeFrequency = -1;
   private smokeTint = -1;
+  private smokeScale = 1;
 
   private gunTraces: Phaser.GameObjects.Sprite[] = [];
 
@@ -66,7 +71,7 @@ export abstract class Plane extends Phaser.Physics.Arcade.Sprite {
       speed:    { min: 5,  max: 30 },
       angle:    { min: 0,  max: 360 },
       lifespan: { min: 600, max: 1000 },
-      scale:    { start: 0.1, end: 0.5 },
+      scale:    { start: SMOKE_SCALE_START * this.smokeScale, end: SMOKE_SCALE_END * this.smokeScale },
       alpha:    { start: 0.8, end: 0 },
       rotate:   { min: 0, max: 360 },
       tint:     [0x888888, 0x555555, 0x333333],
@@ -77,6 +82,12 @@ export abstract class Plane extends Phaser.Physics.Arcade.Sprite {
     this.smokeEmitter.setDepth(this.depth - 1);
     this.smokeEmitter.startFollow(this);
     this.smokeEmitter.stop();
+  }
+
+  setSmokeScale(scale: number): void {
+    this.smokeScale = scale;
+    this.smokeEmitter?.destroy();
+    this.createSmoke();
   }
 
   updateSmoke(): void {
@@ -152,6 +163,10 @@ export abstract class Plane extends Phaser.Physics.Arcade.Sprite {
     this.gunTraces.length = 0;
   }
 
+  setFallScale(scale: number): void {
+    this.fallScale = scale;
+  }
+
   startCrash(): void {
     if (this.isCrashing) return;
     this.isCrashing = true;
@@ -160,7 +175,7 @@ export abstract class Plane extends Phaser.Physics.Arcade.Sprite {
     body.enable = false;
 
     this.crashVx   = Math.cos(this.rotation) * this.currentSpeed * 0.3;
-    this.crashVy   = CRASH_INITIAL_FALL;
+    this.crashVy   = CRASH_INITIAL_FALL * this.fallScale;
     this.crashSpin = (Math.random() < 0.5 ? -1 : 1) * Phaser.Math.FloatBetween(2, 4);
 
     if (this.smokeEmitter) {
@@ -174,7 +189,7 @@ export abstract class Plane extends Phaser.Physics.Arcade.Sprite {
     if (!this.isCrashing) return false;
 
     const dt = delta / 1000;
-    this.crashVy  += CRASH_GRAVITY * dt;
+    this.crashVy  += CRASH_GRAVITY * this.fallScale * dt;
     this.x        += this.crashVx * dt;
     this.y        += this.crashVy * dt;
     this.rotation += this.crashSpin * dt;

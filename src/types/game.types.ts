@@ -146,6 +146,7 @@ export interface BattlefieldWorldConfig {
   ceiling: number;
   planeScale: number;
   planeSpeed: number;
+  fallScale: number;
 }
 
 export interface GroundHarmonic {

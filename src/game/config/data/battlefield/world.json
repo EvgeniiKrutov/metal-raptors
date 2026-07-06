@@ -2,8 +2,9 @@
   "tileWidth": 1293,
   "tileHeight": 1024,
   "widthTiles": 1,
-  "camera": { "lerp": 0.1, "zoom": 1.8 },
+  "camera": { "lerp": 0.1, "zoom": 2 },
   "ceiling": 40,
-  "planeScale": 0.5,
-  "planeSpeed": 300
+  "planeScale": 0.3,
+  "planeSpeed": 300,
+  "fallScale": 0.5
 }

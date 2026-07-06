@@ -1,9 +1,9 @@
 {
   "sprite": "bomb",
-  "displayWidth": 30,
+  "displayWidth": 18,
   "mass": 2,
   "damage": 60,
-  "area": 120,
+  "area": 72,
   "gravity": 420,
   "inertia": 0.9
 }
