@@ -124,7 +124,7 @@ export interface EngineSoundConfig {
   turnRateThreshold: number;
   climbAngleDeg: number;
   spawnFadeInMs: number;
-  enemyVolumeFactor: number;
+  enemyThrottleMaxVolume: number;
   enemyFadeStartDistance: number;
   enemyFadeEndDistance: number;
   maxAudibleEnemyEngines: number;

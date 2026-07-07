@@ -8,7 +8,13 @@ type VolumeSound = Phaser.Sound.WebAudioSound | Phaser.Sound.HTML5AudioSound;
 
 type EngineState = 'IDLE' | 'THROTTLE';
 
-class EngineSoundController {
+interface EngineController {
+  targetAttenuation: number;
+  update(delta: number): void;
+  destroy(fade: boolean, onDone?: () => void): void;
+}
+
+class EngineSoundController implements EngineController {
   targetAttenuation = 1;
 
   private scene: Phaser.Scene;
@@ -162,6 +168,77 @@ class EngineSoundController {
   }
 }
 
+class EnemyEngineSoundController implements EngineController {
+  targetAttenuation = 1;
+
+  private scene: Phaser.Scene;
+  private config: SoundsConfig;
+
+  private throttle: VolumeSound;
+  private throttleKey: string;
+
+  private level = 0;
+  private attenuation: number;
+  private destroyed = false;
+
+  constructor(scene: Phaser.Scene, config: SoundsConfig) {
+    this.scene = scene;
+    this.config = config;
+    this.attenuation = this.targetAttenuation;
+
+    this.throttleKey = Phaser.Utils.Array.GetRandom(config.pools.engineThrottle);
+    this.throttle = scene.sound.add(this.throttleKey, { loop: true, volume: 0 }) as VolumeSound;
+    this.throttle.play();
+
+    scene.tweens.add({
+      targets: this,
+      level: 1,
+      duration: config.engine.spawnFadeInMs,
+    });
+  }
+
+  update(delta: number): void {
+    if (this.destroyed) return;
+
+    const smoothing = 1 - Math.exp(-this.config.engine.attenuationSmoothing * (delta / 1000));
+    this.attenuation += (this.targetAttenuation - this.attenuation) * smoothing;
+
+    this.applyVolume();
+  }
+
+  destroy(fade: boolean, onDone?: () => void): void {
+    if (this.destroyed) return;
+    this.scene.tweens.killTweensOf(this);
+
+    if (!fade) {
+      this.finalize();
+      onDone?.();
+      return;
+    }
+
+    this.scene.tweens.add({
+      targets: this,
+      level: 0,
+      duration: this.config.engine.crossfadeMs,
+      onUpdate: () => this.applyVolume(),
+      onComplete: () => {
+        this.finalize();
+        onDone?.();
+      },
+    });
+  }
+
+  private finalize(): void {
+    if (this.destroyed) return;
+    this.destroyed = true;
+    this.throttle.destroy();
+  }
+
+  private applyVolume(): void {
+    this.throttle.setVolume(this.config.engine.enemyThrottleMaxVolume * this.attenuation * this.level);
+  }
+}
+
 export class SoundSystem {
   private scene: Phaser.Scene;
   private worldWidth: number;
@@ -169,8 +246,8 @@ export class SoundSystem {
 
   private player: Plane | null = null;
   private playerEngine: EngineSoundController | null = null;
-  private enemyEngines = new Map<Plane, EngineSoundController>();
-  private dying = new Set<EngineSoundController>();
+  private enemyEngines = new Map<Plane, EngineController>();
+  private dying = new Set<EngineController>();
 
   private wind: VolumeSound | null = null;
   private stutter: VolumeSound | null = null;
@@ -253,7 +330,7 @@ export class SoundSystem {
       if (!this.enemyEngines.has(plane)) {
         this.enemyEngines.set(
           plane,
-          new EngineSoundController(this.scene, plane, this.config.engine.enemyVolumeFactor, this.config),
+          new EnemyEngineSoundController(this.scene, this.config),
         );
       }
     }
@@ -289,7 +366,7 @@ export class SoundSystem {
     return Math.hypot(dx, plane.y - this.player.y);
   }
 
-  private retire(controller: EngineSoundController): void {
+  private retire(controller: EngineController): void {
     this.dying.add(controller);
     controller.destroy(true, () => this.dying.delete(controller));
   }
