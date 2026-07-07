@@ -3,6 +3,7 @@
   "name": "First Sortie",
   "background": "verden",
   "backgroundVariant": "dawn",
+  "music": "air-assault",
   "stages": [
     { "maxConcurrent": 2, "enemies": [ { "type": "fighter", "count": 1 } ] },
     { "maxConcurrent": 2, "enemies": [ { "type": "fighter", "count": 1 } ] },

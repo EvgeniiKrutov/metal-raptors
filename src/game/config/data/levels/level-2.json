@@ -3,6 +3,7 @@
   "name": "Normandy Run",
   "background": "normandy",
   "backgroundVariant": "dusk",
+  "music": "air-assault",
   "stages": [
     { "maxConcurrent": 3, "enemies": [ { "type": "fighter", "count": 1 } ] },
     { "maxConcurrent": 3, "enemies": [ { "type": "fighter", "count": 1 } ] },

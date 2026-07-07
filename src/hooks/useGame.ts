@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { GameOutcome } from '../types/game.types';
 import { gameEvents, EVENTS } from '../game/Game';
 import { getCompleted, markCompleted } from '../game/utils/progress';
+import { isMusicEnabled, setMusicEnabled } from '../game/utils/musicPreference';
 import { authenticateGameCenter } from '../services/gameCenter';
 import { getStubPlayerId, fetchPlayerProfile } from '../services/player';
 
@@ -17,6 +18,7 @@ export function useGame() {
 
   const [selectedLevelId, setSelectedLevelId] = useState<string | null>(null);
   const [completed, setCompleted] = useState<string[]>(() => getCompleted());
+  const [musicEnabled, setMusicEnabledState] = useState<boolean>(() => isMusicEnabled());
 
   const [playerResolved, setPlayerResolved] = useState(false);
   const [playerId, setPlayerId] = useState<string | null>(null);
@@ -94,6 +96,15 @@ export function useGame() {
     gameEvents.emit(EVENTS.RESUME_GAME);
   }, []);
 
+  const toggleMusic = useCallback(() => {
+    setMusicEnabledState((prev) => {
+      const next = !prev;
+      setMusicEnabled(next);
+      gameEvents.emit(EVENTS.TOGGLE_MUSIC, { enabled: next });
+      return next;
+    });
+  }, []);
+
   const exitToMenu = useCallback(() => {
     setIsGameOver(false);
     setOutcome(null);
@@ -114,10 +125,12 @@ export function useGame() {
     playerResolved,
     playerId,
     username,
+    musicEnabled,
     attachListeners,
     startGame,
     restartGame,
     resumeGame,
+    toggleMusic,
     exitToMenu,
   };
 }

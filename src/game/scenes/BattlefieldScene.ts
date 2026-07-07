@@ -13,6 +13,7 @@ import { CombatSystem }        from '../systems/CombatSystem';
 import { InterpolationSystem } from '../systems/InterpolationSystem';
 import { BattlefieldLevelManager } from '../systems/BattlefieldLevelManager';
 import { SoundSystem } from '../systems/SoundSystem';
+import { MusicSystem } from '../systems/MusicSystem';
 import { gameEvents, EVENTS } from '../Game';
 import { ControlState, BattlefieldLevelConfig } from '../../types/game.types';
 import { isTouchDevice } from '../utils/helpers';
@@ -37,6 +38,7 @@ export class BattlefieldScene extends Phaser.Scene {
   interpolationSystem!: InterpolationSystem;
   levelManager!: BattlefieldLevelManager;
   soundSystem!: SoundSystem;
+  musicSystem!: MusicSystem;
 
   private levelId!: string;
   private level!: BattlefieldLevelConfig;
@@ -156,6 +158,9 @@ export class BattlefieldScene extends Phaser.Scene {
 
     this.soundSystem = new SoundSystem(this, this.worldWidth);
     this.soundSystem.start(this.player);
+
+    this.musicSystem = new MusicSystem(this);
+    this.musicSystem.start(this.level.music);
 
     this.registry.set('playerHealth',    gameConfig.player.health);
     this.registry.set('playerMaxHealth', gameConfig.player.health);
@@ -545,6 +550,7 @@ export class BattlefieldScene extends Phaser.Scene {
     this.pendingOutcome = 'VICTORY';
 
     this.soundSystem.enterGameOver();
+    this.musicSystem.enterGameOver();
 
     this.time.delayedCall(800, () => {
       this.scene.pause();
@@ -561,6 +567,7 @@ export class BattlefieldScene extends Phaser.Scene {
     this.pendingOutcome = 'DEFEAT';
 
     this.soundSystem.enterGameOver();
+    this.musicSystem.enterGameOver();
 
     this.registry.set('enemies', []);
     this.interpolationSystem.unregister(plane);

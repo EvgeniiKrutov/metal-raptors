@@ -10,6 +10,7 @@ import { CombatSystem }   from '../systems/CombatSystem';
 import { InterpolationSystem } from '../systems/InterpolationSystem';
 import { LevelManager } from '../systems/LevelManager';
 import { SoundSystem } from '../systems/SoundSystem';
+import { MusicSystem } from '../systems/MusicSystem';
 import { gameEvents, EVENTS } from '../Game';
 import { ControlState, LevelConfig } from '../../types/game.types';
 import { isTouchDevice, backgroundLayerPaths, backgroundLayerKeys } from '../utils/helpers';
@@ -29,6 +30,7 @@ export class GameScene extends Phaser.Scene {
   interpolationSystem!: InterpolationSystem;
   levelManager!: LevelManager;
   soundSystem!: SoundSystem;
+  musicSystem!: MusicSystem;
 
   private levelId!: string;
   private level!: LevelConfig;
@@ -133,6 +135,9 @@ export class GameScene extends Phaser.Scene {
 
     this.soundSystem = new SoundSystem(this, world.width);
     this.soundSystem.start(this.player);
+
+    this.musicSystem = new MusicSystem(this);
+    this.musicSystem.start(this.level.music);
 
     this.registry.set('playerHealth',    gameConfig.player.health);
     this.registry.set('playerMaxHealth', gameConfig.player.health);
@@ -427,6 +432,7 @@ export class GameScene extends Phaser.Scene {
     this.pendingOutcome = 'VICTORY';
 
     this.soundSystem.enterGameOver();
+    this.musicSystem.enterGameOver();
 
     this.time.delayedCall(800, () => {
       this.scene.pause();
@@ -443,6 +449,7 @@ export class GameScene extends Phaser.Scene {
     this.pendingOutcome = 'DEFEAT';
 
     this.soundSystem.enterGameOver();
+    this.musicSystem.enterGameOver();
 
     this.registry.set('enemies', []);
     this.interpolationSystem.unregister(plane);

@@ -18,10 +18,12 @@ const App: React.FC = () => {
     completed,
     playerResolved,
     username,
+    musicEnabled,
     attachListeners,
     startGame,
     restartGame,
     resumeGame,
+    toggleMusic,
     exitToMenu,
   } = useGame();
 
@@ -50,7 +52,12 @@ const App: React.FC = () => {
 
       {/* Pause overlay — shown by React so it's always on top */}
       {isStarted && isPaused && !isGameOver && (
-        <PauseScreen onResume={resumeGame} onExitToMenu={exitToMenu} />
+        <PauseScreen
+          musicEnabled={musicEnabled}
+          onResume={resumeGame}
+          onToggleMusic={toggleMusic}
+          onExitToMenu={exitToMenu}
+        />
       )}
 
       {/* Game-over overlay — shown by React so it's always on top */}

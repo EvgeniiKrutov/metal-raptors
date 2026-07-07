@@ -13,4 +13,5 @@ export const EVENTS = {
   RESTART_GAME:          'restartGame',
   EXIT_TO_MENU:          'exitToMenu',
   PLAYER_HEALTH_CHANGED: 'playerHealthChanged',
+  TOGGLE_MUSIC:          'toggleMusic',
 } as const;

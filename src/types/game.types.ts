@@ -110,6 +110,7 @@ export interface LevelConfig {
   name: string;
   background: string;
   backgroundVariant: string;
+  music?: string;
   stages: StageConfig[];
 }
 
@@ -138,6 +139,29 @@ export interface SoundsConfig {
     engineThrottle: string[];
   };
   engine: EngineSoundConfig;
+}
+
+export type MusicWave = 'sine' | 'square' | 'triangle' | 'sawtooth' | 'noise';
+
+export interface MusicTrackConfig {
+  wave: MusicWave;
+  volume: number;
+  detune?: number;
+  attack?: number;
+  release?: number;
+}
+
+export type MusicNoteEvent = [string | number | null, number, number?];
+
+export interface MusicConfig {
+  id: string;
+  name: string;
+  tempo: number;
+  volume: number;
+  loopStart?: number;
+  tracks: Record<string, MusicTrackConfig>;
+  patterns: Record<string, Record<string, MusicNoteEvent[]>>;
+  sequence: string[];
 }
 
 export interface GameConfigData {
@@ -212,6 +236,7 @@ export interface BattlefieldLevelConfig {
   name: string;
   section: 'battlefield';
   map: string;
+  music?: string;
   ground: GroundCurveConfig;
   stages: BattlefieldStageConfig[];
 }
