@@ -3,6 +3,7 @@
   "name": "Western Front",
   "section": "battlefield",
   "map": "battlefield",
+  "music": "obsidian-march",
   "ground": {
     "baseline": 672.08,
     "period": 1293,
