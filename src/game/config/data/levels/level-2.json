@@ -5,8 +5,8 @@
   "backgroundVariant": "dusk",
   "music": "steel-talons",
   "stages": [
-    { "maxConcurrent": 3, "enemies": [ { "type": "fighter", "count": 1 } ] },
-    { "maxConcurrent": 3, "enemies": [ { "type": "fighter", "count": 1 } ] },
-    { "maxConcurrent": 4, "enemies": [ { "type": "fighter", "count": 2 } ] }
+    { "maxConcurrent": 3, "enemies": [ { "type": "fighter", "count": 1 }, { "type": "kamikaze", "count": 1 } ] },
+    { "maxConcurrent": 3, "enemies": [ { "type": "heavy", "count": 1 }, { "type": "kamikaze", "count": 2 } ] },
+    { "maxConcurrent": 4, "enemies": [ { "type": "fighter", "count": 2 }, { "type": "heavy", "count": 1 }, { "type": "kamikaze", "count": 1 } ] }
   ]
 }

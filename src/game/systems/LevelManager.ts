@@ -1,10 +1,13 @@
 import Phaser from 'phaser';
-import { LevelConfig } from '../../types/game.types';
+import { EnemyBehaviorConfig, LevelConfig } from '../../types/game.types';
 import { gameConfig } from '../config/gameConfig';
 import { EnemyPlane } from '../entities/EnemyPlane';
+import { KamikazePlane } from '../entities/KamikazePlane';
+import { createEnemyPlane } from '../entities/createEnemyPlane';
 import { PlayerPlane } from '../entities/PlayerPlane';
 import { InterpolationSystem } from './InterpolationSystem';
 import { getEnemyBehavior } from '../config/data/enemies/index';
+import { degToRad } from '../utils/helpers';
 
 export interface LevelManagerCallbacks {
   onSpawn?: (enemy: EnemyPlane) => void;
@@ -129,23 +132,28 @@ export class LevelManager {
 
   private spawnEnemy(typeId: string): void {
     const behavior = getEnemyBehavior(typeId);
-    const { x, y } = this.computeSpawnPoint();
+    const { x, y } = this.computeSpawnPoint(behavior);
 
-    const enemy = new EnemyPlane(this.scene, x, y, behavior);
+    const enemy = createEnemyPlane(this.scene, x, y, behavior);
     enemy.setRotation(Phaser.Math.Angle.Between(x, y, this.player.x, this.player.y));
 
     this.interpolation.register(enemy);
-    enemy.on('fire', (bx: number, by: number, angle: number) => {
+    enemy.on('fire', (bx: number, by: number, angle: number, damage: number) => {
       (this.scene as Phaser.Scene & {
-        spawnEnemyBullet: (x: number, y: number, angle: number) => void;
-      }).spawnEnemyBullet(bx, by, angle);
+        spawnEnemyBullet: (x: number, y: number, angle: number, damage: number) => void;
+      }).spawnEnemyBullet(bx, by, angle, damage);
+    });
+    enemy.on('detonate', (kamikaze: KamikazePlane) => {
+      (this.scene as Phaser.Scene & {
+        onEnemyDetonated: (enemy: KamikazePlane) => void;
+      }).onEnemyDetonated(kamikaze);
     });
 
     this.activeEnemies.push(enemy);
     this.callbacks.onSpawn?.(enemy);
   }
 
-  private computeSpawnPoint(): { x: number; y: number } {
+  private computeSpawnPoint(behavior: EnemyBehaviorConfig): { x: number; y: number } {
     const { world, spawn } = gameConfig;
     const cam = this.scene.cameras.main;
     const view = cam.worldView;
@@ -153,7 +161,7 @@ export class LevelManager {
     const ceiling = 20;
     const groundY = world.height - 80;
 
-    const angle = Math.random() * Math.PI * 2;
+    const angle = this.computeSpawnAngle(behavior);
     const radius =
       Math.max(view.width, view.height) / 2 +
       spawn.ringMargin +
@@ -174,5 +182,16 @@ export class LevelManager {
     x = ((x % world.width) + world.width) % world.width;
 
     return { x, y };
+  }
+
+  private computeSpawnAngle(behavior: EnemyBehaviorConfig): number {
+    if (behavior.role !== 'kamikaze') {
+      return Math.random() * Math.PI * 2;
+    }
+
+    const jitter = degToRad(behavior.ai.spawn.angleJitterDeg);
+    return Phaser.Math.Angle.Wrap(
+      this.player.rotation + Phaser.Math.FloatBetween(-jitter, jitter),
+    );
   }
 }

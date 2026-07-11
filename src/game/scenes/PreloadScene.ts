@@ -26,6 +26,12 @@ export class PreloadScene extends Phaser.Scene {
     if (!this.textures.exists('enemy_temp')) {
       this.load.image('enemy_temp', 'sprites/planes/world_war_1/Fokker_Dr_1.png');
     }
+    if (!this.textures.exists('enemy_kamikaze_temp')) {
+      this.load.image('enemy_kamikaze_temp', 'sprites/planes/world_war_1/Albatros_D.III.png');
+    }
+    if (!this.textures.exists('enemy_heavy_temp')) {
+      this.load.image('enemy_heavy_temp', 'sprites/planes/world_war_1/Fokker_Eindecker.png');
+    }
     if (!this.textures.exists('smoke')) {
       this.load.image('smoke', 'effects/smoke.png');
     }
@@ -98,12 +104,12 @@ export class PreloadScene extends Phaser.Scene {
     }
   }
 
-  private makePlaneTexture(spriteName: string, planeName: string): void {
+  private makePlaneTexture(spriteName: string, planeName: string, widthFactor: number = 1): void {
     this.textures.get(spriteName).setFilter(Phaser.Textures.FilterMode.LINEAR);
 
     const tempSprite = this.add.sprite(0, 0, spriteName);
 
-    const baseWidth = PLANE_BASE_WIDTH * (isTouchDevice() ? PLANE_MOBILE_SCALE : 1);
+    const baseWidth = PLANE_BASE_WIDTH * widthFactor * (isTouchDevice() ? PLANE_MOBILE_SCALE : 1);
     const baseHeight = (baseWidth * tempSprite.height) / tempSprite.width;
 
     const scaleX = baseWidth / tempSprite.width;
@@ -112,7 +118,7 @@ export class PreloadScene extends Phaser.Scene {
     tempSprite.setScale(scaleX, scaleY);
     tempSprite.setOrigin(0, 0);
 
-    if (planeName === 'enemy') {
+    if (planeName.startsWith('enemy')) {
       tempSprite.setFlipY(true);
     }
 
@@ -134,8 +140,15 @@ export class PreloadScene extends Phaser.Scene {
   }
 
   private makeEnemyTexture(): void {
-    if (this.textures.exists('enemy')) return;
-    this.makePlaneTexture('enemy_temp', 'enemy');
+    if (!this.textures.exists('enemy')) {
+      this.makePlaneTexture('enemy_temp', 'enemy');
+    }
+    if (!this.textures.exists('enemy_kamikaze')) {
+      this.makePlaneTexture('enemy_kamikaze_temp', 'enemy_kamikaze', 0.85);
+    }
+    if (!this.textures.exists('enemy_heavy')) {
+      this.makePlaneTexture('enemy_heavy_temp', 'enemy_heavy', 1.25);
+    }
   }
 
   private createLoadingUI(): void {

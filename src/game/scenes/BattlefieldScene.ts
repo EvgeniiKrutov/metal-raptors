@@ -5,6 +5,7 @@ import { Plane }       from '../entities/Plane';
 import { PlayerPlane } from '../entities/PlayerPlane';
 import { EnemyPlane }  from '../entities/EnemyPlane';
 import { AIContext }   from '../entities/EnemyPlane';
+import { KamikazePlane } from '../entities/KamikazePlane';
 import { Bullet }      from '../entities/Bullet';
 import { Bomb }        from '../entities/Bomb';
 import { Machine }     from '../entities/Machine';
@@ -26,6 +27,7 @@ const GROUND_EXPLOSION_SCALE = 1.8;
 const BATTLEFIELD_SPEED_SCALE = 0.6;
 
 const BULLET_PLANE_WIDTH_RATIO = 0.16;
+const BLAST_EXPLOSION_SIZE_FACTOR = 2 / EXPLOSION_SCALE_FACTOR;
 
 export class BattlefieldScene extends Phaser.Scene {
   player!: PlayerPlane;
@@ -331,21 +333,8 @@ export class BattlefieldScene extends Phaser.Scene {
     );
 
     if (playerHit) {
-      this.registry.set('playerHealth', this.player.currentHealth);
-      gameEvents.emit(EVENTS.PLAYER_HEALTH_CHANGED, {
-        current: this.player.currentHealth,
-        max: this.player.maxHealth,
-      });
-
-      if (this.player.isAlive() && this.player.getHealthPercent() <= 0.3) {
-        cam.shake(200, 0.004);
-        this.soundSystem.playStutter();
-      }
-
-      if (!this.player.isAlive()) {
-        this.triggerDefeat(this.player, 'fall');
-        return;
-      }
+      this.handlePlayerDamaged();
+      if (this.isGameOver) return;
     }
 
     this.writeEnemyRegistry(cam);
@@ -360,6 +349,9 @@ export class BattlefieldScene extends Phaser.Scene {
       if (!enemy.isAlive()) continue;
       enemy.updateAI(delta, this.buildAIContext(enemy));
       enemy.updateSmoke();
+
+      if (enemy.x < 0)               enemy.x += this.worldWidth;
+      if (enemy.x > this.worldWidth) enemy.x -= this.worldWidth;
     }
   }
 
@@ -422,6 +414,51 @@ export class BattlefieldScene extends Phaser.Scene {
     this.levelManager.removeEnemy(enemy);
   }
 
+  onEnemyDetonated(enemy: KamikazePlane): void {
+    if (!enemy.visible) return;
+
+    const blastRadius = enemy.getBlastDamageRadius();
+    const dist = Phaser.Math.Distance.Between(
+      enemy.x, enemy.y, this.player.x, this.player.y,
+    );
+
+    this.spawnExplosion(
+      enemy.x,
+      enemy.y,
+      blastRadius * BLAST_EXPLOSION_SIZE_FACTOR,
+      0.5,
+      false,
+      'explosion_air',
+    );
+    enemy.takeDamage(enemy.currentHealth);
+    enemy.hideWreck();
+    this.levelManager.removeEnemy(enemy);
+
+    if (this.isGameOver || !this.player.isAlive()) return;
+    if (dist > blastRadius) return;
+
+    this.player.takeDamage(enemy.planeConfig.damage);
+    this.cameras.main.shake(250, 0.006);
+    this.handlePlayerDamaged();
+  }
+
+  private handlePlayerDamaged(): void {
+    this.registry.set('playerHealth', this.player.currentHealth);
+    gameEvents.emit(EVENTS.PLAYER_HEALTH_CHANGED, {
+      current: this.player.currentHealth,
+      max: this.player.maxHealth,
+    });
+
+    if (this.player.isAlive() && this.player.getHealthPercent() <= 0.3) {
+      this.cameras.main.shake(200, 0.004);
+      this.soundSystem.playStutter();
+    }
+
+    if (!this.player.isAlive()) {
+      this.triggerDefeat(this.player, 'fall');
+    }
+  }
+
   private explodeMachine(machine: Machine): void {
     if (!machine.visible) return;
     this.spawnExplosion(machine.x, machine.y, this.player.displayWidth, 1, false, 'explosion', GROUND_EXPLOSION_SCALE);
@@ -454,10 +491,10 @@ export class BattlefieldScene extends Phaser.Scene {
     }
   }
 
-  spawnEnemyBullet(x: number, y: number, angle: number): void {
+  spawnEnemyBullet(x: number, y: number, angle: number, damage: number = gameConfig.enemy.damage): void {
     const bullet = this.enemyBullets.get(x, y) as Bullet;
     if (bullet) {
-      bullet.fire(x, y, angle, this.bulletSpeed, gameConfig.enemy.damage);
+      bullet.fire(x, y, angle, this.bulletSpeed, damage);
       bullet.setDisplaySize(this.bulletDisplayWidth, this.bulletDisplayHeight);
     }
   }

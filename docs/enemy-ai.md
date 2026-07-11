@@ -1,6 +1,18 @@
 # Enemy AI
 
-Implemented in `src/game/entities/EnemyPlane.ts`. The AI runs a four-state machine updated every frame via `updateAI(delta, ctx)`.
+Enemy AI is split across `src/game/entities/`:
+
+- `EnemyPlane.ts` — abstract base class with shared helpers: ground-avoidance checks, recover heading, lead-intercept prediction, and firing (`updateFiring` emits `fire` with the enemy's own `stats.damage`).
+- `FighterPlane.ts` — dogfighting behavior (`role: "fighter"`).
+- `KamikazePlane.ts` — suicide attacker (`role: "kamikaze"`).
+- `HeavyPlane.ts` — heavy gunship (`role: "heavy"`).
+- `createEnemyPlane.ts` — factory that picks the class from the behavior config's `role` field.
+
+Behavior configs live in `src/game/config/data/enemies/*.json` and are referenced by `id` from level stage configs. Every config shares `stats`, `flight`, and `ai.groundAvoidance`; the rest of the `ai` block is role-specific (see the `EnemyBehaviorConfig` union in `src/types/game.types.ts`).
+
+# Fighter
+
+The fighter runs a four-state machine updated every frame via `updateAI(delta, ctx)`.
 
 ## States
 
@@ -117,3 +129,77 @@ heading = angle_to(weaveX, groundY × targetYFactor)
 | `jitterHz` | How often jitter is re-randomised (Hz) |
 | `threatRadius` | Bullet detection radius (px) |
 | `threatMissDistance` | Perpendicular miss distance threshold (px) |
+
+# Kamikaze
+
+Fast, fragile suicide plane (`enemies/kamikaze.json`, Albatros D.III sprite). It never shoots; it detonates instead.
+
+## Spawning
+
+Unlike other enemies, which spawn at a random angle on the off-screen ring around the player, the kamikaze spawns in the direction the player's nose is pointing (`player.rotation` plus a random offset within `±ai.spawn.angleJitterDeg`). It therefore always enters the screen in front of the player's guns, giving the player time to react and shoot it down before it closes in. Both `LevelManager` and `BattlefieldLevelManager` apply this rule in their spawn-angle computation.
+
+## States
+
+```
+  any state ── ground threat ──→ RECOVER ── safe altitude ──→ PURSUE
+  any state ── off-screen ─────→ RETURN  ── on-screen ──────→ PURSUE
+  PURSUE  ── pursue timer expires ──→ BREAK_OFF
+  BREAK_OFF ── break-off timer expires ──→ PURSUE
+  any state ── player within triggerRadius ──→ DETONATE (terminal)
+```
+
+- **PURSUE** — flies straight at the player with a sinusoidal heading weave (`weaveAmplitudeDeg` / `weaveHz`) that makes it harder to hit.
+- **BREAK_OFF** — after `pursue.durationMs` without reaching the player it turns away: heading directly away from the player plus a random offset within `±headingJitterDeg`, held for `breakOff.durationMs`, then it attacks again.
+- **DETONATE** — checked every frame before anything else. When the distance to the player drops below `blast.triggerRadius`, the plane emits `detonate`; the scene spawns an air explosion sized to the blast, removes the plane, and applies `stats.damage` to the player if the player is inside `blast.damageRadius`. Both radii are multiplied by the plane's current scale, so they shrink correctly on the battlefield map.
+
+Shooting the kamikaze down before it reaches you triggers a normal (harmless) kill explosion. It performs no evasion when damaged — its defense is speed and the weave.
+
+## Configuration Keys (`enemies/kamikaze.json`)
+
+### `ai.spawn`
+| Key | Description |
+|---|---|
+| `angleJitterDeg` | Random spread around the player's nose direction for the spawn angle (degrees) |
+
+### `ai.pursue`
+| Key | Description |
+|---|---|
+| `durationMs` | Time chasing the player before breaking off (ms) |
+| `weaveAmplitudeDeg` | Max heading weave offset while pursuing (degrees) |
+| `weaveHz` | Weave frequency (Hz) |
+
+### `ai.breakOff`
+| Key | Description |
+|---|---|
+| `durationMs` | Time flying away before the next attack run (ms) |
+| `headingJitterDeg` | Random spread applied to the escape heading (degrees) |
+
+### `ai.blast`
+| Key | Description |
+|---|---|
+| `triggerRadius` | Distance to the player that triggers detonation (px) |
+| `damageRadius` | Radius inside which the player takes `stats.damage` (px) |
+
+# Heavy
+
+Slow, tanky gunship modelled on the Fokker Eindecker (`enemies/heavy.json`). High health and mass, very low turn speed, higher bullet damage, and a faster fire rate than the fighter.
+
+## States
+
+```
+  any state ── ground threat ──→ RECOVER ── safe altitude ──→ PASS
+  any state ── off-screen ─────→ RETURN  ── on-screen ──────→ PASS
+```
+
+- **PASS** — the core behavior. The heavy never turns around to chase the player. It keeps its current horizontal direction; when the player is ahead of it, it steers toward the lead-intercept point but clamps its climb/dive to `±maxClimbAngleDeg` from horizontal. When the player is behind, it levels out and keeps flying toward the screen edge — the world wraps horizontally, so it reappears on the opposite side and lines up another straight pass.
+- It fires whenever aligned during PASS, using its own wider `fireAngleThreshold` and longer `maxFireRange`.
+- It does not evade when hit; it absorbs damage and holds course.
+
+## Configuration Keys (`enemies/heavy.json`)
+
+### `ai.pass`
+| Key | Description |
+|---|---|
+| `maxClimbAngleDeg` | Max deviation from level flight while approaching (degrees) |
+
+`ai.targeting` and `ai.groundAvoidance` use the same keys as the fighter.

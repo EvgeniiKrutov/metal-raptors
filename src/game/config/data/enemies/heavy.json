@@ -1,0 +1,31 @@
+{
+  "id": "heavy",
+  "name": "Fokker Eindecker",
+  "role": "heavy",
+  "stats": {
+    "sprite": "enemy_heavy",
+    "width": 70,
+    "health": 260,
+    "damage": 18,
+    "fireRate": 9
+  },
+  "flight": {
+    "maxSpeed": 320,
+    "turnSpeed": 55,
+    "mass": 3.2
+  },
+  "ai": {
+    "targeting": {
+      "fireAngleThreshold": 25,
+      "leadFactor": 1.0,
+      "maxFireRange": 1600
+    },
+    "groundAvoidance": {
+      "minAltitudeMargin": 350,
+      "safeAltitudeMargin": 550
+    },
+    "pass": {
+      "maxClimbAngleDeg": 28
+    }
+  }
+}

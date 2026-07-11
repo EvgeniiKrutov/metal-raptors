@@ -1,0 +1,39 @@
+{
+  "id": "kamikaze",
+  "name": "WW1 Kamikaze",
+  "role": "kamikaze",
+  "stats": {
+    "sprite": "enemy_kamikaze",
+    "width": 64,
+    "health": 20,
+    "damage": 35,
+    "fireRate": 0
+  },
+  "flight": {
+    "maxSpeed": 350,
+    "turnSpeed": 210,
+    "mass": 1.0
+  },
+  "ai": {
+    "spawn": {
+      "angleJitterDeg": 25
+    },
+    "groundAvoidance": {
+      "minAltitudeMargin": 250,
+      "safeAltitudeMargin": 450
+    },
+    "pursue": {
+      "durationMs": 4000,
+      "weaveAmplitudeDeg": 18,
+      "weaveHz": 1.2
+    },
+    "breakOff": {
+      "durationMs": 2200,
+      "headingJitterDeg": 35
+    },
+    "blast": {
+      "triggerRadius": 110,
+      "damageRadius": 240
+    }
+  }
+}

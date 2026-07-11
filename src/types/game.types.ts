@@ -10,35 +10,47 @@ export interface PlaneConfig {
   bombCooldown?: number;
 }
 
-export interface EnemyBehaviorConfig {
+export type EnemyRole = 'fighter' | 'kamikaze' | 'heavy';
+
+export interface EnemyStatsConfig {
+  sprite: string;
+  width: number;
+  health: number;
+  damage: number;
+  fireRate: number;
+}
+
+export interface EnemyFlightConfig {
+  maxSpeed: number;
+  turnSpeed: number;
+  mass: number;
+}
+
+export interface EnemyTargetingConfig {
+  fireAngleThreshold: number;
+  leadFactor: number;
+  maxFireRange: number;
+}
+
+export interface EnemyGroundAvoidanceConfig {
+  minAltitudeMargin: number;
+  safeAltitudeMargin: number;
+}
+
+interface EnemyBehaviorBase {
   id: string;
   name: string;
+  role: EnemyRole;
+  stats: EnemyStatsConfig;
+  flight: EnemyFlightConfig;
+}
 
-  stats: {
-    sprite: string;
-    width: number;
-    health: number;
-    damage: number;
-    fireRate: number;
-  };
-
-  flight: {
-    maxSpeed: number;
-    turnSpeed: number;
-    mass: number;
-  };
+export interface FighterBehaviorConfig extends EnemyBehaviorBase {
+  role: 'fighter';
 
   ai: {
-    targeting: {
-      fireAngleThreshold: number;
-      leadFactor: number;
-      maxFireRange: number;
-    };
-
-    groundAvoidance: {
-      minAltitudeMargin: number;
-      safeAltitudeMargin: number;
-    };
+    targeting: EnemyTargetingConfig;
+    groundAvoidance: EnemyGroundAvoidanceConfig;
 
     attack: {
       durationMs: number;
@@ -60,6 +72,52 @@ export interface EnemyBehaviorConfig {
     };
   };
 }
+
+export interface KamikazeBehaviorConfig extends EnemyBehaviorBase {
+  role: 'kamikaze';
+
+  ai: {
+    spawn: {
+      angleJitterDeg: number;
+    };
+
+    groundAvoidance: EnemyGroundAvoidanceConfig;
+
+    pursue: {
+      durationMs: number;
+      weaveAmplitudeDeg: number;
+      weaveHz: number;
+    };
+
+    breakOff: {
+      durationMs: number;
+      headingJitterDeg: number;
+    };
+
+    blast: {
+      triggerRadius: number;
+      damageRadius: number;
+    };
+  };
+}
+
+export interface HeavyBehaviorConfig extends EnemyBehaviorBase {
+  role: 'heavy';
+
+  ai: {
+    targeting: EnemyTargetingConfig;
+    groundAvoidance: EnemyGroundAvoidanceConfig;
+
+    pass: {
+      maxClimbAngleDeg: number;
+    };
+  };
+}
+
+export type EnemyBehaviorConfig =
+  | FighterBehaviorConfig
+  | KamikazeBehaviorConfig
+  | HeavyBehaviorConfig;
 
 export interface PhysicsConfig {
   turnResponsiveness: number;

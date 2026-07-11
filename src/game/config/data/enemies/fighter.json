@@ -1,6 +1,7 @@
 {
   "id": "fighter",
   "name": "WW1 Fighter",
+  "role": "fighter",
   "stats": {
     "sprite": "enemy",
     "width": 64,
@@ -9,7 +10,7 @@
     "fireRate": 5
   },
   "flight": {
-    "maxSpeed": 460,
+    "maxSpeed": 350,
     "turnSpeed": 150,
     "mass": 1.5
   },

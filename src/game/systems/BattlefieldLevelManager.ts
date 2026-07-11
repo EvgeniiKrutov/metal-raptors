@@ -1,13 +1,16 @@
 import Phaser from 'phaser';
-import { BattlefieldLevelConfig } from '../../types/game.types';
+import { BattlefieldLevelConfig, EnemyBehaviorConfig } from '../../types/game.types';
 import { gameConfig } from '../config/gameConfig';
 import { EnemyPlane } from '../entities/EnemyPlane';
+import { KamikazePlane } from '../entities/KamikazePlane';
+import { createEnemyPlane } from '../entities/createEnemyPlane';
 import { PlayerPlane } from '../entities/PlayerPlane';
 import { Machine } from '../entities/Machine';
 import { InterpolationSystem } from './InterpolationSystem';
 import { TerrainSystem } from './TerrainSystem';
 import { getEnemyBehavior } from '../config/data/enemies/index';
 import { getMachine, isMachineType } from '../config/data/battlefield/machines/index';
+import { degToRad } from '../utils/helpers';
 
 export interface BattlefieldLevelManagerCallbacks {
   onSpawnEnemy?: (enemy: EnemyPlane) => void;
@@ -186,19 +189,24 @@ export class BattlefieldLevelManager {
 
   private spawnEnemy(typeId: string): void {
     const behavior = getEnemyBehavior(typeId);
-    const { x, y } = this.computeEnemySpawnPoint();
+    const { x, y } = this.computeEnemySpawnPoint(behavior);
 
-    const enemy = new EnemyPlane(this.scene, x, y, behavior);
+    const enemy = createEnemyPlane(this.scene, x, y, behavior);
     enemy.setScale(this.planeScale);
     enemy.setSmokeScale(this.planeScale);
     enemy.currentSpeed = behavior.flight.maxSpeed * this.enemySpeedScale;
     enemy.setRotation(Phaser.Math.Angle.Between(x, y, this.player.x, this.player.y));
 
     this.interpolation.register(enemy);
-    enemy.on('fire', (bx: number, by: number, angle: number) => {
+    enemy.on('fire', (bx: number, by: number, angle: number, damage: number) => {
       (this.scene as Phaser.Scene & {
-        spawnEnemyBullet: (x: number, y: number, angle: number) => void;
-      }).spawnEnemyBullet(bx, by, angle);
+        spawnEnemyBullet: (x: number, y: number, angle: number, damage: number) => void;
+      }).spawnEnemyBullet(bx, by, angle, damage);
+    });
+    enemy.on('detonate', (kamikaze: KamikazePlane) => {
+      (this.scene as Phaser.Scene & {
+        onEnemyDetonated: (enemy: KamikazePlane) => void;
+      }).onEnemyDetonated(kamikaze);
     });
 
     this.activeEnemies.push(enemy);
@@ -223,12 +231,12 @@ export class BattlefieldLevelManager {
     this.callbacks.onSpawnMachine?.(machine);
   }
 
-  private computeEnemySpawnPoint(): { x: number; y: number } {
+  private computeEnemySpawnPoint(behavior: EnemyBehaviorConfig): { x: number; y: number } {
     const { spawn } = gameConfig;
     const cam = this.scene.cameras.main;
     const view = cam.worldView;
 
-    const angle = Math.random() * Math.PI * 2;
+    const angle = this.computeSpawnAngle(behavior);
     const radius =
       Math.max(view.width, view.height) / 2 +
       spawn.ringMargin +
@@ -252,5 +260,16 @@ export class BattlefieldLevelManager {
     x = ((x % this.worldWidth) + this.worldWidth) % this.worldWidth;
 
     return { x, y };
+  }
+
+  private computeSpawnAngle(behavior: EnemyBehaviorConfig): number {
+    if (behavior.role !== 'kamikaze') {
+      return Math.random() * Math.PI * 2;
+    }
+
+    const jitter = degToRad(behavior.ai.spawn.angleJitterDeg);
+    return Phaser.Math.Angle.Wrap(
+      this.player.rotation + Phaser.Math.FloatBetween(-jitter, jitter),
+    );
   }
 }
