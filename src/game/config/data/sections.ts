@@ -1,6 +1,7 @@
 import { SectionConfig } from '../../../types/game.types';
 import { getLevels } from './levels/index';
 import { getBattlefieldLevels } from './battlefield/levels/index';
+import { getRibbonLevels } from './ribbon/levels/index';
 
 export const SECTIONS: SectionConfig[] = [
   {
@@ -14,6 +15,12 @@ export const SECTIONS: SectionConfig[] = [
     name: 'Battlefield',
     sceneKey: 'BattlefieldScene',
     levels: getBattlefieldLevels().map((l) => ({ id: l.id, name: l.name })),
+  },
+  {
+    id: 'ribbon',
+    name: 'Ribbon Cutting',
+    sceneKey: 'RibbonScene',
+    levels: getRibbonLevels().map((l) => ({ id: l.id, name: l.name })),
   },
 ];
 

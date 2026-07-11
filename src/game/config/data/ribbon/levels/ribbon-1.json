@@ -1,0 +1,24 @@
+{
+  "id": "ribbon-1",
+  "name": "Silk Skies",
+  "section": "ribbon",
+  "background": "verden",
+  "backgroundVariant": "dawn",
+  "music": "steel-talons",
+  "timeLimitMs": 120000,
+  "ribbon": {
+    "segmentLength": 26,
+    "maxSegments": 56,
+    "width": 14,
+    "color": "#ffe98a"
+  },
+  "scoring": {
+    "maxPoints": 100,
+    "minPoints": 5
+  },
+  "opponent": {
+    "maxSpeed": 460,
+    "turnSpeed": 165,
+    "mass": 2.0
+  }
+}

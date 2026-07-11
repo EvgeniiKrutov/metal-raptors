@@ -73,17 +73,37 @@ interface StageInfo {
   remaining: number;
 }
 
+interface RibbonScores {
+  player: number;
+  enemy: number;
+}
+
+export type UIVariant = 'combat' | 'ribbon';
+
+const SCORE_FONT_SIZE = 30;
+const SCORE_MARGIN = 28;
+
+const TIMER_COLOUR = '#ffffff';
+const TIMER_WARN_COLOUR = '#ff6b6b';
+const TIMER_WARN_MS = 10000;
+
 export class UIScene extends Phaser.Scene {
   rexVirtualJoystick!: {
     add(scene: Phaser.Scene, config?: VirtualJoyStick.IConfig): VirtualJoyStick;
   };
 
-  private playerBar!: Phaser.GameObjects.Graphics;
-  private enemyBar!:  Phaser.GameObjects.Graphics;
+  private variant: UIVariant = 'combat';
+
+  private playerBar?: Phaser.GameObjects.Graphics;
+  private enemyBar?:  Phaser.GameObjects.Graphics;
   private controlsText!: Phaser.GameObjects.Text;
-  private stageText!: Phaser.GameObjects.Text;
-  private altitudeText!: Phaser.GameObjects.Text;
-  private altGauge!: Phaser.GameObjects.Image;
+  private stageText?: Phaser.GameObjects.Text;
+  private altitudeText?: Phaser.GameObjects.Text;
+  private altGauge?: Phaser.GameObjects.Image;
+
+  private playerScoreText?: Phaser.GameObjects.Text;
+  private enemyScoreText?: Phaser.GameObjects.Text;
+  private timerText?: Phaser.GameObjects.Text;
 
   private useTouchControls = false;
   private joystick?: VirtualJoyStick;
@@ -115,7 +135,46 @@ export class UIScene extends Phaser.Scene {
     super({ key: 'UIScene' });
   }
 
+  init(data?: { variant?: UIVariant }): void {
+    this.variant = data?.variant ?? 'combat';
+  }
+
   create(): void {
+    this.useTouchControls = isTouchDevice();
+
+    if (this.variant === 'combat') {
+      this.createCombatUI();
+    } else {
+      this.createRibbonUI();
+    }
+
+    this.controlsText = this.add.text(
+      0, 0,
+      this.controlsHint(),
+      {
+        fontFamily: 'Courier New',
+        fontSize: '14px',
+        color: '#ffffff',
+      },
+    ).setOrigin(0.5, 0.5).setAlpha(0.45);
+
+    if (this.useTouchControls) {
+      this.createJoystick();
+      if (this.variant === 'combat') {
+        this.createActionButtons();
+      }
+      this.createPauseButton();
+    }
+
+    this.layout();
+    if (this.variant === 'combat') {
+      this.requestGaugeFont();
+    }
+    this.scale.on('resize', this.layout, this);
+    this.events.once('shutdown', () => this.scale.off('resize', this.layout, this));
+  }
+
+  private createCombatUI(): void {
     this.playerBar = this.add.graphics();
     this.enemyBar  = this.add.graphics();
 
@@ -127,39 +186,39 @@ export class UIScene extends Phaser.Scene {
       strokeThickness: 3,
     }).setOrigin(1, 0).setAlpha(0.85);
 
-    this.useTouchControls = isTouchDevice();
-
-    this.controlsText = this.add.text(
-      0, 0,
-      this.useTouchControls
-        ? 'Joystick — Move    Buttons — Fire / Bomb'
-        : 'A/D — Rotate    F — Fire    H — Bomb',
-      {
-        fontFamily: 'Courier New',
-        fontSize: '14px',
-        color: '#ffffff',
-      },
-    ).setOrigin(0.5, 0.5).setAlpha(0.45);
-
     this.altGauge = this.add.image(0, 0, 'speedometer').setOrigin(0, 0);
 
-    const gaugeTextStyle = {
+    this.altitudeText = this.add.text(0, 0, '', {
       fontFamily: GAUGE_FONT,
       fontSize: '14px',
       color: GAUGE_TEXT_COLOUR,
+    }).setOrigin(0.5);
+  }
+
+  private createRibbonUI(): void {
+    const scoreStyle = {
+      fontFamily: 'Courier New',
+      fontSize: `${SCORE_FONT_SIZE}px`,
+      color: '#ffe98a',
+      stroke: '#000000',
+      strokeThickness: 4,
     };
 
-    this.altitudeText = this.add.text(0, 0, '', gaugeTextStyle).setOrigin(0.5);
+    this.playerScoreText = this.add.text(0, 0, 'PLAYER  0', scoreStyle)
+      .setOrigin(0, 0).setAlpha(0.95);
+    this.enemyScoreText = this.add.text(0, 0, 'ENEMY  0', scoreStyle)
+      .setOrigin(1, 0).setAlpha(0.95);
+    this.timerText = this.add.text(0, 0, '', { ...scoreStyle, color: TIMER_COLOUR })
+      .setOrigin(0.5, 0).setAlpha(0.95);
+  }
 
-    if (this.useTouchControls) {
-      this.createTouchControls();
-      this.createPauseButton();
+  private controlsHint(): string {
+    if (this.variant === 'ribbon') {
+      return this.useTouchControls ? 'Joystick — Move' : 'A/D — Rotate';
     }
-
-    this.layout();
-    this.requestGaugeFont();
-    this.scale.on('resize', this.layout, this);
-    this.events.once('shutdown', () => this.scale.off('resize', this.layout, this));
+    return this.useTouchControls
+      ? 'Joystick — Move    Buttons — Fire / Bomb'
+      : 'A/D — Rotate    F — Fire    H — Bomb';
   }
 
   private requestGaugeFont(): void {
@@ -189,7 +248,7 @@ export class UIScene extends Phaser.Scene {
 
   private refreshGaugeFontMetrics(): void {
     if (!this.gaugeFontPending || !this.isGaugeFontLoaded()) return;
-    this.altitudeText.style.update(true);
+    this.altitudeText?.style.update(true);
     this.gaugeFontPending = false;
   }
 
@@ -218,7 +277,7 @@ export class UIScene extends Phaser.Scene {
     this.textures.get(key).setFilter(Phaser.Textures.FilterMode.LINEAR);
   }
 
-  private createTouchControls(): void {
+  private createJoystick(): void {
     this.buildJoystickTexture(
       JOY_BASE_TEXTURE, JOY_BASE_RADIUS, 0xffffff, JOY_BASE_FILL_ALPHA, JOY_BASE_RING_WIDTH,
     );
@@ -240,7 +299,9 @@ export class UIScene extends Phaser.Scene {
       fixed: true,
       enable: true,
     });
+  }
 
+  private createActionButtons(): void {
     this.fireGfx = this.add.circle(0, 0, FIRE_RADIUS, 0xff3030, CONTROLS_ALPHA)
       .setStrokeStyle(4, 0xffffff, CONTROLS_ALPHA + 0.2);
 
@@ -303,10 +364,10 @@ export class UIScene extends Phaser.Scene {
     const gaugeY  = margin;
     const centreY = gaugeY + gaugeH / 2;
 
-    this.altGauge.setPosition(altX, gaugeY).setDisplaySize(gaugeW, gaugeH);
+    this.altGauge?.setPosition(altX, gaugeY).setDisplaySize(gaugeW, gaugeH);
 
     const gaugeFont = Math.max(8, Math.round(GAUGE_FONT_SIZE * s));
-    this.altitudeText.setFontSize(gaugeFont).setPosition(altX + gaugeW / 2, centreY);
+    this.altitudeText?.setFontSize(gaugeFont).setPosition(altX + gaugeW / 2, centreY);
 
     this.hpBarW = HP_BAR_WIDTH * s;
     this.hpBarH = HP_BAR_HEIGHT * s;
@@ -317,8 +378,19 @@ export class UIScene extends Phaser.Scene {
       ? (PAUSE_MARGIN * 2 + PAUSE_RADIUS * 2) * Math.max(s, MIN_CONTROL_SCALE)
       : STAGE_MARGIN * s;
     this.stageText
-      .setFontSize(Math.max(10, Math.round(STAGE_FONT_SIZE * s)))
+      ?.setFontSize(Math.max(10, Math.round(STAGE_FONT_SIZE * s)))
       .setPosition(w - STAGE_MARGIN * s, stageY);
+
+    const scoreFont = Math.max(12, Math.round(SCORE_FONT_SIZE * s));
+    this.playerScoreText
+      ?.setFontSize(scoreFont)
+      .setPosition(SCORE_MARGIN * s, stageY);
+    this.enemyScoreText
+      ?.setFontSize(scoreFont)
+      .setPosition(w - SCORE_MARGIN * s, stageY);
+    this.timerText
+      ?.setFontSize(scoreFont)
+      .setPosition(w / 2, stageY);
 
     this.controlsText
       .setFontSize(Math.max(9, Math.round(CONTROLS_FONT_SIZE * s)))
@@ -435,40 +507,70 @@ export class UIScene extends Phaser.Scene {
     };
   }
 
+  private updateRibbonTimer(): void {
+    if (!this.timerText) return;
+
+    const suddenDeath = (this.registry.get('ribbonSuddenDeath') as boolean) ?? false;
+    if (suddenDeath) {
+      this.timerText.setText('SUDDEN DEATH').setColor(TIMER_WARN_COLOUR);
+      return;
+    }
+
+    const msLeft = (this.registry.get('ribbonTimeLeft') as number) ?? 0;
+    const totalSeconds = Math.ceil(msLeft / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    this.timerText
+      .setText(`${minutes}:${String(seconds).padStart(2, '0')}`)
+      .setColor(msLeft <= TIMER_WARN_MS ? TIMER_WARN_COLOUR : TIMER_COLOUR);
+  }
+
   update(): void {
+    if (this.variant === 'ribbon') {
+      const scores = (this.registry.get('ribbonScores') as RibbonScores) ?? { player: 0, enemy: 0 };
+      this.playerScoreText?.setText(`PLAYER  ${scores.player}`);
+      this.enemyScoreText?.setText(`ENEMY  ${scores.enemy}`);
+      this.updateRibbonTimer();
+      return;
+    }
+
     this.refreshGaugeFontMetrics();
 
     const pH   = this.registry.get('playerHealth')    as number ?? gameConfig.player.health;
     const pMax = this.registry.get('playerMaxHealth') as number ?? gameConfig.player.health;
 
-    this.playerBar.clear();
-    this.drawHealthBar(
-      this.playerBar,
-      this.hpBarX, this.hpBarY,
-      this.hpBarW, this.hpBarH,
-      pH / pMax,
-      healthColour(pH / pMax),
-    );
-
-    this.enemyBar.clear();
-    const enemies = (this.registry.get('enemies') as EnemyBarDescriptor[]) ?? [];
-    const s    = this.uiScale;
-    const barW = ENEMY_BAR_WIDTH * s;
-    const barH = ENEMY_BAR_HEIGHT * s;
-    const cull = ENEMY_BAR_CULL * s;
-
-    for (const enemy of enemies) {
-      if (enemy.screenX <= -cull || enemy.screenX >= this.screenW + cull) {
-        continue;
-      }
+    if (this.playerBar) {
+      this.playerBar.clear();
       this.drawHealthBar(
-        this.enemyBar,
-        enemy.screenX - barW / 2,
-        enemy.screenY - ENEMY_BAR_OFFSET * s,
-        barW, barH,
-        enemy.percent,
-        0xdc143c,
+        this.playerBar,
+        this.hpBarX, this.hpBarY,
+        this.hpBarW, this.hpBarH,
+        pH / pMax,
+        healthColour(pH / pMax),
       );
+    }
+
+    if (this.enemyBar) {
+      this.enemyBar.clear();
+      const enemies = (this.registry.get('enemies') as EnemyBarDescriptor[]) ?? [];
+      const s    = this.uiScale;
+      const barW = ENEMY_BAR_WIDTH * s;
+      const barH = ENEMY_BAR_HEIGHT * s;
+      const cull = ENEMY_BAR_CULL * s;
+
+      for (const enemy of enemies) {
+        if (enemy.screenX <= -cull || enemy.screenX >= this.screenW + cull) {
+          continue;
+        }
+        this.drawHealthBar(
+          this.enemyBar,
+          enemy.screenX - barW / 2,
+          enemy.screenY - ENEMY_BAR_OFFSET * s,
+          barW, barH,
+          enemy.percent,
+          0xdc143c,
+        );
+      }
     }
 
     if (this.bombGfx && this.bombText) {
@@ -479,15 +581,15 @@ export class UIScene extends Phaser.Scene {
     }
 
     const altitude = Math.round((this.registry.get('playerAltitude') as number) ?? 0);
-    this.altitudeText.setText(`${altitude}m`);
+    this.altitudeText?.setText(`${altitude}m`);
 
     const stage = this.registry.get('stageInfo') as StageInfo | undefined;
     if (stage) {
-      this.stageText.setText(
+      this.stageText?.setText(
         `Stage ${stage.stageIndex + 1}/${stage.totalStages} — ${stage.remaining} left`,
       );
     } else {
-      this.stageText.setText('');
+      this.stageText?.setText('');
     }
   }
 

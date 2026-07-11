@@ -299,6 +299,38 @@ export interface BattlefieldLevelConfig {
   stages: BattlefieldStageConfig[];
 }
 
+export interface RibbonConfig {
+  segmentLength: number;
+  maxSegments: number;
+  width: number;
+  color: string;
+  sprite?: string;
+}
+
+export interface RibbonScoringConfig {
+  maxPoints: number;
+  minPoints: number;
+}
+
+export interface RibbonOpponentConfig {
+  maxSpeed: number;
+  turnSpeed: number;
+  mass: number;
+}
+
+export interface RibbonLevelConfig {
+  id: string;
+  name: string;
+  section: 'ribbon';
+  background: string;
+  backgroundVariant: string;
+  music?: string;
+  timeLimitMs?: number;
+  ribbon: RibbonConfig;
+  scoring: RibbonScoringConfig;
+  opponent: RibbonOpponentConfig;
+}
+
 export type GameState   = 'INIT' | 'LOADING' | 'PLAYING' | 'GAME_OVER';
 export type GameOutcome = 'VICTORY' | 'DEFEAT' | null;
 

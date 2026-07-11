@@ -5,6 +5,7 @@ import { BootScene }    from '../game/scenes/BootScene';
 import { PreloadScene } from '../game/scenes/PreloadScene';
 import { GameScene }    from '../game/scenes/GameScene';
 import { BattlefieldScene } from '../game/scenes/BattlefieldScene';
+import { RibbonScene }  from '../game/scenes/RibbonScene';
 import { UIScene }      from '../game/scenes/UIScene';
 
 interface Props {
@@ -45,7 +46,7 @@ const GameContainer: React.FC<Props> = ({ onReady }) => {
           debug: import.meta.env.DEV && false, // set true to see hitboxes
         },
       },
-      scene: [BootScene, PreloadScene, GameScene, BattlefieldScene, UIScene],
+      scene: [BootScene, PreloadScene, GameScene, BattlefieldScene, RibbonScene, UIScene],
       plugins: {
         scene: [
           {

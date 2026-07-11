@@ -1,5 +1,4 @@
 import airAssault from './air-assault.json';
-import barnstormerWaltz from './barnstormer-waltz.json';
 import blackTide from './black-tide.json';
 import brassBattalion from './brass-battalion.json';
 import dreadLegion from './dread-legion.json';
@@ -22,7 +21,6 @@ import { MusicConfig } from '../../../../types/game.types';
 
 export const MUSIC_TRACKS: MusicConfig[] = [
   airAssault as unknown as MusicConfig,
-  barnstormerWaltz as unknown as MusicConfig,
   blackTide as unknown as MusicConfig,
   brassBattalion as unknown as MusicConfig,
   dreadLegion as unknown as MusicConfig,

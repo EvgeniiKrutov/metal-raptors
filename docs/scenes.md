@@ -179,11 +179,37 @@ zoom. Full details — data model, terrain, machines, win/lose — are in
 
 ---
 
+## RibbonScene
+
+`src/game/scenes/RibbonScene.ts`
+
+The Ribbon Cutting-section gameplay scene: a 1-vs-1 sky duel with no weapons and
+no ground. Each plane trails a fabric-like ribbon; cutting the opponent's ribbon
+with the nose scores points, and the higher score when the match timer runs out
+wins the duel. It reuses
+`GameScene`'s lifecycle (pause/restart/exit, sounds, music, `InterpolationSystem`,
+game-over flow) but draws only the level's sky layer, clamps both planes inside
+the arena, and launches `UIScene` with `{ variant: 'ribbon' }`. Full details —
+ribbon model, cutting, scoring, win/lose — are in [ribbon.md](ribbon.md).
+
+---
+
 ## UIScene
 
 `src/game/scenes/UIScene.ts`
 
-A parallel scene rendered on top of `GameScene` / `BattlefieldScene`. Draws health bars each frame using `Phaser.GameObjects.Graphics`.
+A parallel scene rendered on top of `GameScene` / `BattlefieldScene` /
+`RibbonScene`. Draws health bars each frame using `Phaser.GameObjects.Graphics`.
+
+The scene takes an optional launch payload `{ variant: 'combat' | 'ribbon' }`
+(default `combat`). The **ribbon** variant replaces the combat HUD — altitude
+gauge, health bars, stage text, and the touch fire/bomb buttons — with two score
+labels (`PLAYER` top-left, `ENEMY` top-right, read from the `ribbonScores`
+registry key each frame) and a top-centre match countdown (`M:SS`, read from the
+`ribbonTimeLeft` registry key; turns red in the last 10 s and shows
+`SUDDEN DEATH` when the `ribbonSuddenDeath` registry key is set); the joystick,
+pause button, and controls hint remain. Everything below describes the default
+combat variant.
 
 All HUD elements are laid out from the **live screen size** and re-flow on every Scale Manager `resize`: sizes/fonts scale by `uiScale = screenHeight / 1080` and elements anchor to the live screen edges (gauges + player bar top-left, stage indicator top-right, controls hint bottom-centre, joystick bottom-right and fire button bottom-left). The joystick and fire button can be pressed at the same time (`input.activePointers: 3`). See [display-and-responsiveness.md](display-and-responsiveness.md).
 
